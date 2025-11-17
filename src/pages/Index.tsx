@@ -13,13 +13,13 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-12 text-center">
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-primary bg-clip-text text-transparent">
+      <main className="container mx-auto px-4 py-12">
+        <div className="mb-16 text-center max-w-4xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-semibold mb-4 text-foreground tracking-tight">
             OpenChemFacts
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Open data platform for ecotoxicity data visualization and analysis
+          <p className="text-lg text-muted-foreground leading-relaxed">
+            Open data platform for ecotoxicity data visualization and scientific analysis
           </p>
         </div>
 

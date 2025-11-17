@@ -145,10 +145,10 @@ export const StatsOverview = () => {
         ))}
       </div>
 
-      <Card className="mt-8 shadow-card bg-gradient-to-br from-primary/5 to-secondary/5">
+      <Card className="mt-8 shadow-card bg-muted/50 border-muted">
         <CardContent className="pt-6">
-          <h3 className="text-lg font-semibold mb-2">How to use OpenChemFacts</h3>
-          <p className="text-muted-foreground">
+          <h3 className="text-lg font-semibold mb-2 text-foreground">How to use OpenChemFacts</h3>
+          <p className="text-muted-foreground leading-relaxed">
             Search for a chemical substance by its CAS number to visualize ecotoxicity data, 
             species sensitivity distributions (SSD), and EC10 equivalent values.
           </p>

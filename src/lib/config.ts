@@ -1,5 +1,6 @@
 /**
  * Configuration de l'API Scalingo
+<<<<<<< HEAD
  * 
  * L'URL peut être définie via la variable d'environnement VITE_API_BASE_URL.
  * Si non définie, utilise l'URL par défaut selon l'environnement :
@@ -21,6 +22,19 @@ const getApiBaseUrl = (): string => {
   
   // Sinon, utiliser les valeurs par défaut selon l'environnement
   return import.meta.env.DEV 
+=======
+ * L'URL peut être définie via la variable d'environnement VITE_API_BASE_URL
+ * ou utilise l'URL par défaut :
+ * - Production/Preview : https://openchemfacts-api.osc-fr1.scalingo.io
+ * - Développement local uniquement : http://localhost:8000 (nécessite VITE_API_BASE_URL)
+ */
+const isLocalhost = typeof window !== 'undefined' && 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+export const API_BASE_URL = 
+  import.meta.env.VITE_API_BASE_URL || 
+  (isLocalhost 
+>>>>>>> 607ecb72e560764dabd9e783bf2e4940f5bd389a
     ? 'http://localhost:8000' 
     : 'https://openchemfacts-api.osc-fr1.scalingo.io';
 };
