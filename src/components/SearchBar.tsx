@@ -17,6 +17,16 @@ interface CasItem {
   chemical_name?: string;
 }
 
+// Fonction pour normaliser un numéro CAS (enlever les espaces, normaliser les tirets)
+const normalizeCas = (cas: string): string => {
+  return cas.trim().replace(/\s+/g, '').replace(/[–—]/g, '-'); // Remplace les espaces et normalise les tirets
+};
+
+// Fonction pour comparer deux numéros CAS (insensible à la casse et aux espaces)
+const compareCas = (cas1: string, cas2: string): boolean => {
+  return normalizeCas(cas1).toLowerCase() === normalizeCas(cas2).toLowerCase();
+};
+
 export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -92,10 +102,12 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
   }, [error, errorShown]);
 
   const filteredCas = searchTerm
-    ? casList.filter((item) =>
-        item.cas_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.chemical_name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
-      ).slice(0, 10)
+    ? casList.filter((item) => {
+        const normalizedSearch = normalizeCas(searchTerm).toLowerCase();
+        const normalizedCas = normalizeCas(item.cas_number).toLowerCase();
+        const normalizedName = item.chemical_name?.toLowerCase() || '';
+        return normalizedCas.includes(normalizedSearch) || normalizedName.includes(normalizedSearch);
+      }).slice(0, 10)
     : [];
 
   // Log debug: afficher les résultats du filtre
@@ -108,32 +120,47 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
   }, [searchTerm, filteredCas]);
 
   const handleSearch = () => {
-    if (!searchTerm.trim()) {
-      toast.error("Please enter a CAS number or chemical name");
+    const trimmedSearch = searchTerm.trim();
+    if (!trimmedSearch) {
+      toast.error("Veuillez entrer un numéro CAS ou un nom de produit chimique");
       return;
     }
     
-    // Try exact CAS match first
-    const exactMatch = casList.find(item => item.cas_number === searchTerm);
+    const normalizedSearch = normalizeCas(trimmedSearch);
+    
+    // Try exact CAS match first (normalisé)
+    const exactMatch = casList.find(item => compareCas(item.cas_number, normalizedSearch));
     if (exactMatch) {
       onCasSelect(exactMatch.cas_number);
+      setSearchTerm(exactMatch.cas_number);
       setShowSuggestions(false);
       return;
     }
     
-    // Try case-insensitive match on CAS or name
+    // Try case-insensitive match on CAS (normalisé) or name
     const matchedItem = casList.find(item => 
-      item.cas_number.toLowerCase() === searchTerm.toLowerCase() ||
-      item.chemical_name?.toLowerCase() === searchTerm.toLowerCase()
+      compareCas(item.cas_number, normalizedSearch) ||
+      item.chemical_name?.toLowerCase().trim() === trimmedSearch.toLowerCase()
     );
     
     if (matchedItem) {
       onCasSelect(matchedItem.cas_number);
+      setSearchTerm(matchedItem.cas_number);
       setShowSuggestions(false);
     } else {
-      // Accept the input as-is and let API validate
-      onCasSelect(searchTerm);
-      setShowSuggestions(false);
+      // Si on a des suggestions filtrées, prendre la première
+      if (filteredCas.length > 0) {
+        onCasSelect(filteredCas[0].cas_number);
+        setSearchTerm(filteredCas[0].cas_number);
+        setShowSuggestions(false);
+        toast.info(`Substance sélectionnée : ${filteredCas[0].cas_number}`);
+      } else {
+        // Accepter l'entrée normalisée et laisser l'API valider
+        // Ne pas afficher d'erreur ici car la substance pourrait exister dans la base
+        // même si elle n'est pas dans la liste locale (liste peut être incomplète)
+        onCasSelect(normalizedSearch);
+        setShowSuggestions(false);
+      }
     }
   };
 
@@ -151,7 +178,7 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
         <div className="relative flex-1">
           <Input
             type="text"
-            placeholder="Search by CAS number or chemical name (e.g., 42576-02-3)..."
+            placeholder="Rechercher par numéro CAS ou nom de produit chimique (ex: 42576-02-3)..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -164,7 +191,7 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         </div>
         <Button onClick={handleSearch}>
-          Search
+          Rechercher
         </Button>
       </div>
 
@@ -198,3 +225,4 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
     </div>
   );
 };
+

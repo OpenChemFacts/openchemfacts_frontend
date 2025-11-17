@@ -19,7 +19,18 @@ interface ChemicalData {
   [key: string]: any;
 }
 
+// Fonction pour normaliser un numéro CAS (enlever les espaces, normaliser les tirets)
+const normalizeCas = (cas: string): string => {
+  return cas.trim().replace(/\s+/g, '').replace(/[–—]/g, '-');
+};
+
+// Fonction pour comparer deux numéros CAS (insensible à la casse et aux espaces)
+const compareCas = (cas1: string, cas2: string): boolean => {
+  return normalizeCas(cas1).toLowerCase() === normalizeCas(cas2).toLowerCase();
+};
+
 export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
+  const normalizedCas = cas ? normalizeCas(cas) : '';
   // Get chemical name from CAS list
   const { data: casListData } = useQuery({
     queryKey: ["cas-list"],
@@ -39,46 +50,53 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
   let chemicalName: string | undefined;
   let casExists = false;
   
-  if (casListData?.cas_with_names) {
+  if (casListData?.cas_with_names && normalizedCas) {
     if (Array.isArray(casListData.cas_with_names)) {
-      // Legacy array format
-      const item = casListData.cas_with_names.find((item) => item.cas_number === cas);
+      // Legacy array format - utiliser compareCas pour la recherche
+      const item = casListData.cas_with_names.find((item) => compareCas(item.cas_number, normalizedCas));
       chemicalName = item?.chemical_name;
       casExists = !!item;
-      console.log(`[ChemicalInfo] Array format - CAS: ${cas}, Found: ${casExists}, Name: ${chemicalName}`);
+      console.log(`[ChemicalInfo] Array format - CAS: ${normalizedCas}, Found: ${casExists}, Name: ${chemicalName}`);
     } else {
       // Object format {cas_number: chemical_name}
+      // Chercher avec comparaison normalisée
       const casWithNamesObj = casListData.cas_with_names as Record<string, string>;
-      casExists = cas in casWithNamesObj;
-      chemicalName = casWithNamesObj[cas];
-      console.log(`[ChemicalInfo] Object format - CAS: ${cas}, Exists in object: ${casExists}, Name: ${chemicalName}`);
-      console.log(`[ChemicalInfo] Total keys in cas_with_names:`, Object.keys(casWithNamesObj).length);
-      console.log(`[ChemicalInfo] First 5 keys:`, Object.keys(casWithNamesObj).slice(0, 5));
+      const matchingKey = Object.keys(casWithNamesObj).find(key => compareCas(key, normalizedCas));
+      casExists = !!matchingKey;
+      chemicalName = matchingKey ? casWithNamesObj[matchingKey] : undefined;
+      console.log(`[ChemicalInfo] Object format - CAS: ${normalizedCas}, Exists in object: ${casExists}, Name: ${chemicalName}`);
+      if (!casExists) {
+        console.log(`[ChemicalInfo] Total keys in cas_with_names:`, Object.keys(casWithNamesObj).length);
+        console.log(`[ChemicalInfo] First 5 keys:`, Object.keys(casWithNamesObj).slice(0, 5));
+        console.log(`[ChemicalInfo] Searching for normalized CAS: "${normalizedCas}"`);
+      }
     }
   }
   
-  // Fallback: check in cas_numbers list if not found in cas_with_names
-  if (!casExists && casListData?.cas_numbers) {
-    const foundInCasNumbers = casListData.cas_numbers.includes(cas);
+  // Fallback: check in cas_numbers list if not found in cas_with_names (avec comparaison normalisée)
+  if (!casExists && casListData?.cas_numbers && normalizedCas) {
+    const foundInCasNumbers = casListData.cas_numbers.some(casNum => compareCas(casNum, normalizedCas));
     console.log(`[ChemicalInfo] Checking fallback cas_numbers - Found: ${foundInCasNumbers}`);
     casExists = foundInCasNumbers;
   }
   
-  console.log(`[ChemicalInfo] Final result - CAS: ${cas}, casExists: ${casExists}, chemicalName: ${chemicalName}`);
+  console.log(`[ChemicalInfo] Final result - CAS: ${normalizedCas}, casExists: ${casExists}, chemicalName: ${chemicalName}`);
 
   // For now, we'll use the data from CAS list
   // In the future, we could add stats via /api/by_column if needed
-  const data: ChemicalData | undefined = cas
+  const data: ChemicalData | undefined = normalizedCas
     ? {
-        cas_number: cas,
+        cas_number: normalizedCas, // Utiliser le CAS normalisé
         chemical_name: chemicalName,
       }
     : undefined;
 
   const isLoading = !casListData;
-  // Only show error if CAS doesn't exist in the database at all
-  // If CAS exists but has no name, that's fine - just display the CAS number
-  const error = !isLoading && !casExists && cas ? new ApiError("CAS number not found in database", 404, "Not Found") : undefined;
+  // Ne pas afficher d'erreur si le CAS n'est pas trouvé dans la liste locale
+  // car la liste pourrait être incomplète ou le format pourrait différer
+  // Laisser l'API backend valider l'existence réelle du CAS via les endpoints de graphiques
+  // Si le CAS n'existe vraiment pas, les graphiques afficheront une erreur appropriée
+  const error = undefined; // Ne jamais afficher d'erreur ici, laisser les autres composants gérer
 
   if (isLoading) {
     return (

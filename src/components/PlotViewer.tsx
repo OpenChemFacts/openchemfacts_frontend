@@ -189,24 +189,66 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
 
   // Load Plotly dynamically
   useEffect(() => {
+    // Vérifier d'abord si Plotly est déjà disponible
     if ((window as any).Plotly) {
       setPlotlyLoaded(true);
       return;
     }
 
-    // Vérifier si le script est déjà en cours de chargement
-    const existingScript = document.querySelector('script[src="https://cdn.plot.ly/plotly-2.27.0.min.js"]');
+    // Vérifier si le script est déjà en cours de chargement ou déjà chargé
+    const existingScript = document.querySelector('script[src="https://cdn.plot.ly/plotly-2.27.0.min.js"]') as HTMLScriptElement | null;
     if (existingScript) {
-      existingScript.addEventListener('load', () => {
+      // Si le script existe, vérifier s'il est déjà chargé
+      if ((window as any).Plotly) {
         setPlotlyLoaded(true);
-      });
-      return;
+        return;
+      }
+      
+      // Vérifier si le script est marqué comme chargé
+      if (existingScript.getAttribute('data-loaded') === 'true') {
+        // Le script est marqué comme chargé, vérifier Plotly
+        if ((window as any).Plotly) {
+          setPlotlyLoaded(true);
+        } else {
+          // Attendre un peu au cas où Plotly se charge juste après
+          const checkInterval = setInterval(() => {
+            if ((window as any).Plotly) {
+              setPlotlyLoaded(true);
+              clearInterval(checkInterval);
+            }
+          }, 50);
+          
+          // Arrêter après 2 secondes si Plotly ne se charge pas
+          const timeoutId = setTimeout(() => {
+            clearInterval(checkInterval);
+          }, 2000);
+          
+          return () => {
+            clearInterval(checkInterval);
+            clearTimeout(timeoutId);
+          };
+        }
+        return;
+      }
+      
+      // Le script est en cours de chargement, attendre l'événement load
+      const handleLoad = () => {
+        existingScript.setAttribute('data-loaded', 'true');
+        setPlotlyLoaded(true);
+      };
+      
+      existingScript.addEventListener('load', handleLoad);
+      return () => {
+        existingScript.removeEventListener('load', handleLoad);
+      };
     }
 
+    // Créer et charger le script si aucun script n'existe
     const script = document.createElement("script");
     script.src = "https://cdn.plot.ly/plotly-2.27.0.min.js";
     script.async = true;
     script.onload = () => {
+      script.setAttribute('data-loaded', 'true');
       setPlotlyLoaded(true);
     };
     script.onerror = () => {
