@@ -37,15 +37,24 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
   // Find chemical info from the list
   // Backend returns cas_with_names as object {cas_number: chemical_name}
   let chemicalName: string | undefined;
+  let casExists = false;
+  
   if (casListData?.cas_with_names) {
     if (Array.isArray(casListData.cas_with_names)) {
       // Legacy array format
       const item = casListData.cas_with_names.find((item) => item.cas_number === cas);
       chemicalName = item?.chemical_name;
+      casExists = !!item;
     } else {
       // Object format {cas_number: chemical_name}
+      casExists = cas in (casListData.cas_with_names as Record<string, string>);
       chemicalName = (casListData.cas_with_names as Record<string, string>)[cas];
     }
+  }
+  
+  // Fallback: check in cas_numbers list if not found in cas_with_names
+  if (!casExists && casListData?.cas_numbers) {
+    casExists = casListData.cas_numbers.includes(cas);
   }
 
   // For now, we'll use the data from CAS list
@@ -58,7 +67,7 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
     : undefined;
 
   const isLoading = !casListData;
-  const error = !isLoading && !chemicalName && cas ? new ApiError("CAS number not found in database", 404, "Not Found") : undefined;
+  const error = !isLoading && !casExists && cas ? new ApiError("CAS number not found in database", 404, "Not Found") : undefined;
 
   if (isLoading) {
     return (
