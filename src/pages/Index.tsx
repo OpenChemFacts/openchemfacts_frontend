@@ -4,6 +4,7 @@ import { ChemicalInfo } from "@/components/ChemicalInfo";
 import { PlotViewer } from "@/components/PlotViewer";
 import { StatsOverview } from "@/components/StatsOverview";
 import { Header } from "@/components/Header";
+import { BenchmarkComparison } from "@/components/BenchmarkComparison";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
@@ -25,28 +26,32 @@ const Index = () => {
 
         <SearchBar onCasSelect={setSelectedCas} />
 
-        {selectedCas ? (
-          <div className="mt-8 space-y-8">
-            <ChemicalInfo cas={selectedCas} />
-            
-            <Tabs defaultValue="ssd" className="w-full">
-              <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
-                <TabsTrigger value="ssd">SSD Distribution</TabsTrigger>
-                <TabsTrigger value="ec10">EC10 Equivalent</TabsTrigger>
-              </TabsList>
+        <div className="mt-8 space-y-8">
+          {selectedCas && (
+            <>
+              <ChemicalInfo cas={selectedCas} />
               
-              <TabsContent value="ssd" className="mt-6">
-                <PlotViewer cas={selectedCas} type="ssd" />
-              </TabsContent>
-              
-              <TabsContent value="ec10" className="mt-6">
-                <PlotViewer cas={selectedCas} type="ec10eq" />
-              </TabsContent>
-            </Tabs>
-          </div>
-        ) : (
-          <StatsOverview />
-        )}
+              <Tabs defaultValue="ssd" className="w-full">
+                <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
+                  <TabsTrigger value="ssd">SSD Distribution</TabsTrigger>
+                  <TabsTrigger value="ec10">EC10 Equivalent</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="ssd" className="mt-6">
+                  <PlotViewer cas={selectedCas} type="ssd" />
+                </TabsContent>
+                
+                <TabsContent value="ec10" className="mt-6">
+                  <PlotViewer cas={selectedCas} type="ec10eq" />
+                </TabsContent>
+              </Tabs>
+            </>
+          )}
+
+          {!selectedCas && <StatsOverview />}
+          
+          <BenchmarkComparison />
+        </div>
       </main>
     </div>
   );
