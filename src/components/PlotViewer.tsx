@@ -17,6 +17,64 @@ interface PlotlyData {
   config?: any;
 }
 
+// Fonction pour décoder les données numpy/base64 en tableaux JavaScript
+const decodeNumpyData = (data: any): any[] => {
+  if (!data || typeof data !== 'object') return data;
+  
+  // Si c'est un objet avec dtype et bdata, décoder
+  if (data.dtype && data.bdata) {
+    try {
+      const binaryString = atob(data.bdata);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const float64Array = new Float64Array(bytes.buffer);
+      return Array.from(float64Array);
+    } catch (e) {
+      console.error('[PlotViewer] Error decoding numpy data:', e);
+      return [];
+    }
+  }
+  
+  return data;
+};
+
+// Fonction récursive pour traiter toutes les traces
+const processPlotlyTraces = (traces: any[]): any[] => {
+  if (!Array.isArray(traces)) return traces;
+  
+  return traces.map(trace => {
+    const processedTrace = { ...trace };
+    
+    // Décoder x et y si nécessaire
+    if (trace.x) {
+      processedTrace.x = decodeNumpyData(trace.x);
+    }
+    if (trace.y) {
+      processedTrace.y = decodeNumpyData(trace.y);
+    }
+    // Décoder z pour les graphiques 3D si nécessaire
+    if (trace.z) {
+      processedTrace.z = decodeNumpyData(trace.z);
+    }
+    // Décoder d'autres propriétés qui pourraient contenir des données numpy
+    if (trace.customdata) {
+      processedTrace.customdata = decodeNumpyData(trace.customdata);
+    }
+    if (trace.text) {
+      // text peut être un tableau, vérifier s'il contient des données numpy
+      if (Array.isArray(trace.text)) {
+        processedTrace.text = trace.text.map((item: any) => decodeNumpyData(item));
+      } else {
+        processedTrace.text = decodeNumpyData(trace.text);
+      }
+    }
+    
+    return processedTrace;
+  });
+};
+
 export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
   const plotRef = useRef<HTMLDivElement>(null);
   const [plotlyLoaded, setPlotlyLoaded] = useState(false);
@@ -40,12 +98,14 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
       try {
         console.log('[PlotViewer] Plotly data received:', data);
         console.log('[PlotViewer] Number of traces:', data.data?.length);
-        console.log('[PlotViewer] Traces details:', data.data?.map((trace: any) => ({
+        console.log('[PlotViewer] Traces details (before decoding):', data.data?.map((trace: any) => ({
           name: trace.name,
           type: trace.type,
           mode: trace.mode,
           x_length: trace.x?.length || trace.x?.dtype,
           y_length: trace.y?.length || trace.y?.dtype,
+          x_is_numpy: trace.x?.dtype && trace.x?.bdata ? true : false,
+          y_is_numpy: trace.y?.dtype && trace.y?.bdata ? true : false,
         })));
         
         // Vérifier que les données Plotly sont valides
@@ -54,6 +114,17 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
           if (plotRef.current) {
             (window as any).Plotly.purge(plotRef.current);
           }
+          
+          // Décoder les données numpy/base64 avant de les utiliser
+          const processedTraces = processPlotlyTraces(data.data || []);
+          
+          console.log('[PlotViewer] Traces details (after decoding):', processedTraces.map((trace: any) => ({
+            name: trace.name,
+            type: trace.type,
+            mode: trace.mode,
+            x_length: Array.isArray(trace.x) ? trace.x.length : 'not array',
+            y_length: Array.isArray(trace.y) ? trace.y.length : 'not array',
+          })));
 
           // Préserver 100% des éléments du layout original
           // Fusionner intelligemment les améliorations sans écraser les éléments existants
@@ -151,24 +222,39 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
           // Ajouter les axes secondaires APRÈS avoir défini xaxis et yaxis pour éviter les conflits
           Object.assign(enhancedLayout, secondaryAxes);
 
-          // Préserver 100% des traces (data) sans modification
-          // data.data contient toutes les traces (courbes, scatter, barres, etc.)
-          const allTraces = Array.isArray(data.data) ? data.data : [];
+          // Utiliser les traces décodées (déjà traitées par processPlotlyTraces)
+          const allTraces = processedTraces;
           
-          // Vérifier que les traces ont bien des données
+          // Vérifier que les traces ont bien des données (après décodage)
           const validTraces = allTraces.filter(trace => {
-            // Une trace est valide si elle a au moins x ou y défini
-            const hasData = (trace.x !== undefined && trace.x !== null) || 
-                           (trace.y !== undefined && trace.y !== null) ||
-                           (trace.z !== undefined && trace.z !== null);
+            // Une trace est valide si elle a au moins x ou y défini et que ce sont des tableaux
+            const hasX = trace.x !== undefined && trace.x !== null && Array.isArray(trace.x) && trace.x.length > 0;
+            const hasY = trace.y !== undefined && trace.y !== null && Array.isArray(trace.y) && trace.y.length > 0;
+            const hasZ = trace.z !== undefined && trace.z !== null && Array.isArray(trace.z) && trace.z.length > 0;
+            const hasData = hasX || hasY || hasZ;
+            
             if (!hasData) {
-              console.warn('[PlotViewer] Trace sans données:', trace);
+              console.warn('[PlotViewer] Trace sans données valides:', {
+                name: trace.name,
+                type: trace.type,
+                x: trace.x,
+                y: trace.y,
+                z: trace.z,
+              });
             }
             return hasData;
           });
           
           if (validTraces.length === 0 && allTraces.length > 0) {
-            console.error('[PlotViewer] Aucune trace valide trouvée parmi', allTraces.length, 'traces');
+            console.error('[PlotViewer] Aucune trace valide trouvée parmi', allTraces.length, 'traces après décodage');
+            console.error('[PlotViewer] Détails des traces invalides:', allTraces.map((t: any) => ({
+              name: t.name,
+              type: t.type,
+              x_type: typeof t.x,
+              x_is_array: Array.isArray(t.x),
+              y_type: typeof t.y,
+              y_is_array: Array.isArray(t.y),
+            })));
           }
           
           // Configuration : fusionner avec la config originale

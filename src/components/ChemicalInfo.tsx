@@ -47,6 +47,7 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
 
   // Find chemical info from the list
   // Backend returns cas_with_names as object {cas_number: chemical_name}
+  // Toutes les substances disponibles via l'API ont un chemical_name
   let chemicalName: string | undefined;
   let casExists = false;
   
@@ -59,16 +60,51 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
       console.log(`[ChemicalInfo] Array format - CAS: ${normalizedCas}, Found: ${casExists}, Name: ${chemicalName}`);
     } else {
       // Object format {cas_number: chemical_name}
-      // Chercher avec comparaison normalisée
+      // Chercher avec comparaison normalisée - essayer plusieurs variantes
       const casWithNamesObj = casListData.cas_with_names as Record<string, string>;
-      const matchingKey = Object.keys(casWithNamesObj).find(key => compareCas(key, normalizedCas));
+      
+      // Essayer d'abord une recherche exacte (normalisée)
+      let matchingKey = Object.keys(casWithNamesObj).find(key => compareCas(key, normalizedCas));
+      
+      // Si pas trouvé, essayer une recherche partielle (le CAS pourrait être dans une clé plus longue)
+      if (!matchingKey) {
+        matchingKey = Object.keys(casWithNamesObj).find(key => {
+          const normalizedKey = normalizeCas(key);
+          return normalizedKey.includes(normalizedCas) || normalizedCas.includes(normalizedKey);
+        });
+      }
+      
+      // Si toujours pas trouvé, essayer une recherche insensible à la casse sur les valeurs normalisées
+      if (!matchingKey) {
+        matchingKey = Object.keys(casWithNamesObj).find(key => 
+          normalizeCas(key).toLowerCase() === normalizedCas.toLowerCase()
+        );
+      }
+      
       casExists = !!matchingKey;
       chemicalName = matchingKey ? casWithNamesObj[matchingKey] : undefined;
-      console.log(`[ChemicalInfo] Object format - CAS: ${normalizedCas}, Exists in object: ${casExists}, Name: ${chemicalName}`);
-      if (!casExists) {
+      
+      console.log(`[ChemicalInfo] Object format - CAS: ${normalizedCas}, Found: ${casExists}, Name: ${chemicalName}`);
+      
+      if (!casExists || !chemicalName) {
+        console.warn(`[ChemicalInfo] CAS not found or no name - CAS: "${normalizedCas}"`);
         console.log(`[ChemicalInfo] Total keys in cas_with_names:`, Object.keys(casWithNamesObj).length);
-        console.log(`[ChemicalInfo] First 5 keys:`, Object.keys(casWithNamesObj).slice(0, 5));
+        console.log(`[ChemicalInfo] Sample keys (first 10):`, Object.keys(casWithNamesObj).slice(0, 10));
         console.log(`[ChemicalInfo] Searching for normalized CAS: "${normalizedCas}"`);
+        
+        // Dernier recours : chercher dans toutes les valeurs pour voir si le CAS existe quelque part
+        const allKeys = Object.keys(casWithNamesObj);
+        const similarKeys = allKeys.filter(key => {
+          const keyNorm = normalizeCas(key);
+          return keyNorm.length > 0 && (
+            keyNorm.substring(0, Math.min(5, keyNorm.length)) === normalizedCas.substring(0, Math.min(5, normalizedCas.length)) ||
+            normalizedCas.substring(0, Math.min(5, normalizedCas.length)) === keyNorm.substring(0, Math.min(5, keyNorm.length))
+          );
+        });
+        
+        if (similarKeys.length > 0) {
+          console.log(`[ChemicalInfo] Found ${similarKeys.length} similar keys:`, similarKeys.slice(0, 5));
+        }
       }
     }
   }
@@ -78,9 +114,24 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
     const foundInCasNumbers = casListData.cas_numbers.some(casNum => compareCas(casNum, normalizedCas));
     console.log(`[ChemicalInfo] Checking fallback cas_numbers - Found: ${foundInCasNumbers}`);
     casExists = foundInCasNumbers;
+    
+    // Si le CAS existe mais qu'on n'a pas le nom, essayer de le trouver dans cas_with_names avec une recherche plus large
+    if (foundInCasNumbers && !chemicalName && casListData.cas_with_names && !Array.isArray(casListData.cas_with_names)) {
+      const casWithNamesObj = casListData.cas_with_names as Record<string, string>;
+      // Chercher le CAS exact dans cas_numbers et essayer de trouver le nom correspondant
+      const exactCasInList = casListData.cas_numbers.find(casNum => compareCas(casNum, normalizedCas));
+      if (exactCasInList) {
+        // Essayer de trouver ce CAS dans cas_with_names
+        const nameKey = Object.keys(casWithNamesObj).find(key => compareCas(key, exactCasInList));
+        if (nameKey) {
+          chemicalName = casWithNamesObj[nameKey];
+          console.log(`[ChemicalInfo] Found name via fallback: ${chemicalName}`);
+        }
+      }
+    }
   }
   
-  console.log(`[ChemicalInfo] Final result - CAS: ${normalizedCas}, casExists: ${casExists}, chemicalName: ${chemicalName}`);
+  console.log(`[ChemicalInfo] Final result - CAS: ${normalizedCas}, casExists: ${casExists}, chemicalName: ${chemicalName || 'NOT FOUND'}`);
 
   // For now, we'll use the data from CAS list
   // In the future, we could add stats via /api/by_column if needed
@@ -148,10 +199,12 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
             <p className="text-sm text-muted-foreground mb-1">CAS Number</p>
             <p className="font-mono font-semibold text-lg">{data?.cas_number}</p>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Name</p>
-            <p className="font-semibold">{data?.chemical_name || "N/A"}</p>
-          </div>
+          {data?.chemical_name && (
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Chemical Name</p>
+              <p className="font-semibold">{data.chemical_name}</p>
+            </div>
+          )}
         </div>
 
         {data && (
