@@ -317,38 +317,7 @@ export const BenchmarkComparison = () => {
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            {/* Legend with substance colors */}
-            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-              <h4 className="text-sm font-medium text-foreground mb-3">Courbes SSD affichées :</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {selectedCas.map((cas, index) => {
-                  // Plotly default color palette
-                  const colors = [
-                    'rgb(31, 119, 180)',   // blue
-                    'rgb(255, 127, 14)',   // orange
-                    'rgb(44, 160, 44)',    // green
-                  ];
-                  const color = colors[index] || 'rgb(128, 128, 128)';
-                  
-                  return (
-                    <div key={cas} className="flex items-center gap-3">
-                      <div 
-                        className="w-8 h-1 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: color }}
-                      />
-                      <span className="text-sm text-foreground font-medium">
-                        {getChemicalName(cas)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            
-            {/* Plot */}
-            <div ref={plotRef} className="w-full h-[500px] md:h-[600px]" />
-          </div>
+          <div ref={plotRef} className="w-full h-[500px] md:h-[600px]" />
         )}
       </CardContent>
     </Card>
