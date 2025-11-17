@@ -47,15 +47,15 @@ export const StatsOverview = () => {
 
   // Get unique species count
   const { data: speciesData } = useQuery({
-    queryKey: ["by-column", "species"],
-    queryFn: () => apiFetch<ByColumnData>(API_ENDPOINTS.BY_COLUMN("species")),
+    queryKey: ["by-column", "species_common_name"],
+    queryFn: () => apiFetch<ByColumnData>(API_ENDPOINTS.BY_COLUMN("species_common_name")),
     enabled: !!summaryData,
   });
 
-  // Get unique taxa count
+  // Get unique taxa count (using ecotox_group)
   const { data: taxaData } = useQuery({
-    queryKey: ["by-column", "taxon"],
-    queryFn: () => apiFetch<ByColumnData>(API_ENDPOINTS.BY_COLUMN("taxon")),
+    queryKey: ["by-column", "ecotox_group_unepsetacjrc2018"],
+    queryFn: () => apiFetch<ByColumnData>(API_ENDPOINTS.BY_COLUMN("ecotox_group_unepsetacjrc2018")),
     enabled: !!summaryData,
   });
 
