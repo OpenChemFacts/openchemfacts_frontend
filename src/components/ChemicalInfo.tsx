@@ -48,6 +48,10 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
     }
   }
 
+  // Check if CAS exists in the database (in cas_numbers list)
+  // A CAS can exist without a chemical name, so we check cas_numbers first
+  const casExists = casListData?.cas_numbers?.includes(cas) ?? false;
+
   // For now, we'll use the data from CAS list
   // In the future, we could add stats via /api/by_column if needed
   const data: ChemicalData | undefined = cas
@@ -58,7 +62,9 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
     : undefined;
 
   const isLoading = !casListData;
-  const error = !isLoading && !chemicalName && cas ? new ApiError("CAS number not found in database", 404, "Not Found") : undefined;
+  // Only show error if CAS doesn't exist in the database at all
+  // If CAS exists but has no name, that's fine - just display the CAS number
+  const error = !isLoading && !casExists && cas ? new ApiError("CAS number not found in database", 404, "Not Found") : undefined;
 
   if (isLoading) {
     return (
