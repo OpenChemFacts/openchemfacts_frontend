@@ -76,35 +76,77 @@ export const BenchmarkComparison = () => {
   useEffect(() => {
     if (plotData && plotRef.current && (window as any).Plotly) {
       try {
-        const enhancedLayout = {
-          ...plotData.layout,
-          autosize: true,
-          margin: { l: 80, r: 120, t: 100, b: 120, pad: 10 },
-          font: { size: 12 },
-        };
+        console.log('[BenchmarkComparison] Plotly data received:', plotData);
+        console.log('[BenchmarkComparison] Number of traces:', plotData.data?.length);
+        console.log('[BenchmarkComparison] Traces details:', plotData.data?.map((trace: any) => ({
+          name: trace.name,
+          type: trace.type,
+          mode: trace.mode,
+          x_length: trace.x?.length || trace.x?.dtype,
+          y_length: trace.y?.length || trace.y?.dtype,
+        })));
+        
+        // Vérifier que les données Plotly sont valides
+        if (plotData.data && plotData.layout) {
+          const enhancedLayout = {
+            ...plotData.layout,
+            autosize: true,
+            margin: {
+              l: 80,
+              r: 120,
+              t: 100,
+              b: 120,
+              pad: 10
+            },
+            font: {
+              size: 12
+            },
+            xaxis: {
+              ...plotData.layout.xaxis,
+              automargin: true,
+            },
+            yaxis: {
+              ...plotData.layout.yaxis,
+              automargin: true,
+            },
+            legend: {
+              ...plotData.layout.legend,
+              orientation: 'v',
+              x: 1.02,
+              y: 1,
+              xanchor: 'left',
+              yanchor: 'top',
+              font: {
+                size: 11
+              }
+            }
+          };
 
-        (window as any).Plotly.newPlot(
-          plotRef.current,
-          plotData.data,
-          enhancedLayout,
-          {
-            responsive: true,
-            displayModeBar: true,
-            displaylogo: false,
-            modeBarButtonsToRemove: ["lasso2d", "select2d"],
-            ...(plotData.config || {}),
-          }
-        );
+          (window as any).Plotly.newPlot(
+            plotRef.current,
+            plotData.data,
+            enhancedLayout,
+            {
+              responsive: true,
+              displayModeBar: true,
+              displaylogo: false,
+              modeBarButtonsToRemove: ["lasso2d", "select2d"],
+              ...(plotData.config || {}),
+            }
+          );
 
-        const resizeHandler = () => {
-          if (plotRef.current && (window as any).Plotly) {
-            (window as any).Plotly.Plots.resize(plotRef.current);
-          }
-        };
-        window.addEventListener("resize", resizeHandler);
-        return () => window.removeEventListener("resize", resizeHandler);
+          const resizeHandler = () => {
+            if (plotRef.current && (window as any).Plotly) {
+              (window as any).Plotly.Plots.resize(plotRef.current);
+            }
+          };
+          window.addEventListener("resize", resizeHandler);
+          return () => window.removeEventListener("resize", resizeHandler);
+        } else {
+          console.error("[BenchmarkComparison] Invalid Plotly data structure:", plotData);
+        }
       } catch (plotError) {
-        console.error("Error rendering Plotly chart:", plotError);
+        console.error("[BenchmarkComparison] Error rendering Plotly chart:", plotError);
       }
     }
   }, [plotData]);
