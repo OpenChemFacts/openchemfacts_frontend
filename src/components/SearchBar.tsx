@@ -64,6 +64,18 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
 
   const casList: CasItem[] = casListResponse || [];
 
+  // Log debug: vérifier combien de substances ont un chemical_name
+  useEffect(() => {
+    if (casList.length > 0) {
+      const withNames = casList.filter(item => item.chemical_name).length;
+      console.log(`[SearchBar] ${casList.length} substances chargées, ${withNames} ont un nom chimique (${Math.round(withNames/casList.length*100)}%)`);
+      
+      // Afficher quelques exemples
+      const examples = casList.filter(item => item.chemical_name).slice(0, 5);
+      console.log('[SearchBar] Exemples de noms:', examples.map(item => `${item.cas_number}: ${item.chemical_name}`));
+    }
+  }, [casList]);
+
   // Afficher une notification si erreur de chargement de la liste (une seule fois)
   useEffect(() => {
     if (error && !errorShown) {
@@ -85,6 +97,15 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
         (item.chemical_name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
       ).slice(0, 10)
     : [];
+
+  // Log debug: afficher les résultats du filtre
+  useEffect(() => {
+    if (searchTerm && filteredCas.length > 0) {
+      console.log(`[SearchBar] "${searchTerm}" -> ${filteredCas.length} résultat(s)`);
+    } else if (searchTerm && filteredCas.length === 0) {
+      console.log(`[SearchBar] "${searchTerm}" -> aucun résultat`);
+    }
+  }, [searchTerm, filteredCas]);
 
   const handleSearch = () => {
     if (!searchTerm.trim()) {
@@ -147,25 +168,31 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
         </Button>
       </div>
 
-      {showSuggestions && searchTerm && filteredCas.length > 0 && (
+      {showSuggestions && searchTerm && (
         <Card className="absolute w-full mt-2 p-2 shadow-elevated z-10 max-h-80 overflow-y-auto">
-          {filteredCas.map((item) => (
-            <button
-              key={item.cas_number}
-              className="w-full text-left px-4 py-2 hover:bg-muted rounded-md transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSearchTerm(item.cas_number);
-                onCasSelect(item.cas_number);
-                setShowSuggestions(false);
-              }}
-            >
-              <div className="font-mono text-sm font-semibold">{item.cas_number}</div>
-              {item.chemical_name && (
-                <div className="text-xs text-muted-foreground">{item.chemical_name}</div>
-              )}
-            </button>
-          ))}
+          {filteredCas.length > 0 ? (
+            filteredCas.map((item) => (
+              <button
+                key={item.cas_number}
+                className="w-full text-left px-4 py-2 hover:bg-muted rounded-md transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSearchTerm(item.cas_number);
+                  onCasSelect(item.cas_number);
+                  setShowSuggestions(false);
+                }}
+              >
+                <div className="font-mono text-sm font-semibold">{item.cas_number}</div>
+                {item.chemical_name && (
+                  <div className="text-xs text-muted-foreground">{item.chemical_name}</div>
+                )}
+              </button>
+            ))
+          ) : (
+            <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+              Aucune substance trouvée pour "{searchTerm}"
+            </div>
+          )}
         </Card>
       )}
     </div>

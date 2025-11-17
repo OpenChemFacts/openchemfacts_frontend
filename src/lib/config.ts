@@ -18,7 +18,18 @@ const getApiBaseUrl = (): string => {
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL;
   }
-  
+
+  // Cas particulier: en DEV mais pas sur localhost (ex: preview Lovable),
+  // on utilise l'API Scalingo pour éviter les erreurs de connexion à localhost
+  const isHostedDev = import.meta.env.DEV
+    && typeof window !== 'undefined'
+    && window.location.hostname !== 'localhost'
+    && window.location.hostname !== '127.0.0.1';
+
+  if (isHostedDev) {
+    return 'https://openchemfacts-api.osc-fr1.scalingo.io';
+  }
+
   // Sinon, utiliser les valeurs par défaut selon l'environnement
   return import.meta.env.DEV 
     ? 'http://localhost:8000' 

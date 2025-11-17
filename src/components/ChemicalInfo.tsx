@@ -37,15 +37,24 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
   // Find chemical info from the list
   // Backend returns cas_with_names as object {cas_number: chemical_name}
   let chemicalName: string | undefined;
+  let casExists = false;
+  
   if (casListData?.cas_with_names) {
     if (Array.isArray(casListData.cas_with_names)) {
       // Legacy array format
       const item = casListData.cas_with_names.find((item) => item.cas_number === cas);
       chemicalName = item?.chemical_name;
+      casExists = !!item;
     } else {
       // Object format {cas_number: chemical_name}
+      casExists = cas in (casListData.cas_with_names as Record<string, string>);
       chemicalName = (casListData.cas_with_names as Record<string, string>)[cas];
     }
+  }
+  
+  // Fallback: check in cas_numbers list if not found in cas_with_names
+  if (!casExists && casListData?.cas_numbers) {
+    casExists = casListData.cas_numbers.includes(cas);
   }
 
   // Check if CAS exists in the database (in cas_numbers list)
@@ -62,8 +71,11 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
     : undefined;
 
   const isLoading = !casListData;
+<<<<<<< HEAD
   // Only show error if CAS doesn't exist in the database at all
   // If CAS exists but has no name, that's fine - just display the CAS number
+=======
+>>>>>>> e9962f857afc758d57b0dc26883affc573c024d6
   const error = !isLoading && !casExists && cas ? new ApiError("CAS number not found in database", 404, "Not Found") : undefined;
 
   if (isLoading) {
