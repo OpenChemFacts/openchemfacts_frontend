@@ -19,7 +19,7 @@ const Index = () => {
             OpenChemFacts
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Plateforme open data de visualisation et d'analyse des données d'écotoxicité
+            Open data platform for ecotoxicity data visualization and analysis
           </p>
         </div>
 
@@ -31,8 +31,8 @@ const Index = () => {
             
             <Tabs defaultValue="ssd" className="w-full">
               <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
-                <TabsTrigger value="ssd">Distribution SSD</TabsTrigger>
-                <TabsTrigger value="ec10">EC10 Équivalent</TabsTrigger>
+                <TabsTrigger value="ssd">SSD Distribution</TabsTrigger>
+                <TabsTrigger value="ec10">EC10 Equivalent</TabsTrigger>
               </TabsList>
               
               <TabsContent value="ssd" className="mt-6">

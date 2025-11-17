@@ -24,19 +24,19 @@ export const StatsOverview = () => {
 
   const statsCards = [
     {
-      title: "Substances chimiques",
+      title: "Chemical Substances",
       value: data?.total_chemicals,
       icon: FlaskConical,
       color: "text-primary",
     },
     {
-      title: "Tests effectués",
+      title: "Tests Performed",
       value: data?.total_tests,
       icon: TestTubes,
       color: "text-accent",
     },
     {
-      title: "Espèces testées",
+      title: "Species Tested",
       value: data?.total_species,
       icon: Users,
       color: "text-secondary",
@@ -47,9 +47,9 @@ export const StatsOverview = () => {
     <div className="mt-12">
       <div className="text-center mb-8">
         <Database className="h-12 w-12 mx-auto mb-4 text-primary" />
-        <h2 className="text-3xl font-bold mb-2">Statistiques de la base de données</h2>
+        <h2 className="text-3xl font-bold mb-2">Database Statistics</h2>
         <p className="text-muted-foreground">
-          Aperçu des données d'écotoxicité disponibles
+          Overview of available ecotoxicity data
         </p>
       </div>
 
@@ -75,10 +75,10 @@ export const StatsOverview = () => {
 
       <Card className="mt-8 shadow-card bg-gradient-to-br from-primary/5 to-secondary/5">
         <CardContent className="pt-6">
-          <h3 className="text-lg font-semibold mb-2">Comment utiliser OpenChemFacts</h3>
+          <h3 className="text-lg font-semibold mb-2">How to use OpenChemFacts</h3>
           <p className="text-muted-foreground">
-            Recherchez une substance chimique par son numéro CAS pour visualiser les données d'écotoxicité, 
-            les distributions de sensibilité des espèces (SSD) et les valeurs EC10 équivalentes.
+            Search for a chemical substance by its CAS number to visualize ecotoxicity data, 
+            species sensitivity distributions (SSD), and EC10 equivalent values.
           </p>
         </CardContent>
       </Card>

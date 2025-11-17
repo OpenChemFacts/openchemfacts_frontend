@@ -46,7 +46,7 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
     return (
       <Card className="shadow-card border-destructive">
         <CardContent className="pt-6">
-          <p className="text-destructive">Erreur lors du chargement des informations</p>
+          <p className="text-destructive">Error loading chemical information</p>
         </CardContent>
       </Card>
     );
@@ -57,18 +57,18 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FlaskConical className="h-5 w-5 text-primary" />
-          Informations sur la substance
+          Chemical Information
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <p className="text-sm text-muted-foreground mb-1">Numéro CAS</p>
+            <p className="text-sm text-muted-foreground mb-1">CAS Number</p>
             <p className="font-mono font-semibold text-lg">{data?.cas_number}</p>
           </div>
           {data?.chemical_name && (
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Nom chimique</p>
+              <p className="text-sm text-muted-foreground mb-1">Chemical Name</p>
               <p className="font-semibold">{data.chemical_name}</p>
             </div>
           )}
@@ -80,7 +80,7 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
             {data?.number_of_tests} tests
           </Badge>
           <Badge variant="outline" className="text-base py-1 px-4">
-            {data?.species_tested} espèces
+            {data?.species_tested} species
           </Badge>
         </div>
       </CardContent>

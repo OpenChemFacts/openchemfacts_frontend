@@ -16,8 +16,8 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
 
   const endpoint = type === "ssd" ? "ssd-plot" : "ec10eq-plot";
   const title = type === "ssd" 
-    ? "Distribution de Sensibilité des Espèces (SSD)" 
-    : "EC10 Équivalent";
+    ? "Species Sensitivity Distribution (SSD)" 
+    : "EC10 Equivalent";
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["plot", cas, type],
@@ -68,7 +68,7 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
     return (
       <Card className="shadow-card border-destructive">
         <CardContent className="pt-6">
-          <p className="text-destructive">Erreur lors du chargement du graphique</p>
+          <p className="text-destructive">Error loading plot</p>
         </CardContent>
       </Card>
     );

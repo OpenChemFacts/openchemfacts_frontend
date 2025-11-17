@@ -31,7 +31,7 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
 
   const handleSearch = () => {
     if (!searchTerm.trim()) {
-      toast.error("Veuillez entrer un numéro CAS");
+      toast.error("Please enter a CAS number");
       return;
     }
     
@@ -39,7 +39,7 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
       onCasSelect(searchTerm);
       setShowSuggestions(false);
     } else {
-      toast.error("Numéro CAS non trouvé");
+      toast.error("CAS number not found");
     }
   };
 
@@ -57,7 +57,7 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
         <div className="relative flex-1">
           <Input
             type="text"
-            placeholder="Rechercher un numéro CAS (ex: 50-00-0)..."
+            placeholder="Search for a CAS number (e.g., 50-00-0)..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -70,7 +70,7 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         </div>
         <Button onClick={handleSearch} className="bg-gradient-primary">
-          Rechercher
+          Search
         </Button>
       </div>
 

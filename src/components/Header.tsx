@@ -1,4 +1,5 @@
-import { Beaker } from "lucide-react";
+import { Beaker, BookOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export const Header = () => {
   return (
@@ -11,9 +12,20 @@ export const Header = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">OpenChemFacts</h1>
-              <p className="text-sm text-muted-foreground">Données d'écotoxicité</p>
+              <p className="text-sm text-muted-foreground">Ecotoxicity Data</p>
             </div>
           </div>
+          
+          <a 
+            href="https://app.gitbook.com/invite/dQydSEllS3T0vyzF2UXh/DBlIC7FjfdDHgkLJZTTh"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button variant="outline" className="gap-2">
+              <BookOpen className="h-4 w-4" />
+              Documentation
+            </Button>
+          </a>
         </div>
       </div>
     </header>
