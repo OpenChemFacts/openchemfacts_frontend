@@ -45,17 +45,26 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
       const item = casListData.cas_with_names.find((item) => item.cas_number === cas);
       chemicalName = item?.chemical_name;
       casExists = !!item;
+      console.log(`[ChemicalInfo] Array format - CAS: ${cas}, Found: ${casExists}, Name: ${chemicalName}`);
     } else {
       // Object format {cas_number: chemical_name}
-      casExists = cas in (casListData.cas_with_names as Record<string, string>);
-      chemicalName = (casListData.cas_with_names as Record<string, string>)[cas];
+      const casWithNamesObj = casListData.cas_with_names as Record<string, string>;
+      casExists = cas in casWithNamesObj;
+      chemicalName = casWithNamesObj[cas];
+      console.log(`[ChemicalInfo] Object format - CAS: ${cas}, Exists in object: ${casExists}, Name: ${chemicalName}`);
+      console.log(`[ChemicalInfo] Total keys in cas_with_names:`, Object.keys(casWithNamesObj).length);
+      console.log(`[ChemicalInfo] First 5 keys:`, Object.keys(casWithNamesObj).slice(0, 5));
     }
   }
   
   // Fallback: check in cas_numbers list if not found in cas_with_names
   if (!casExists && casListData?.cas_numbers) {
-    casExists = casListData.cas_numbers.includes(cas);
+    const foundInCasNumbers = casListData.cas_numbers.includes(cas);
+    console.log(`[ChemicalInfo] Checking fallback cas_numbers - Found: ${foundInCasNumbers}`);
+    casExists = foundInCasNumbers;
   }
+  
+  console.log(`[ChemicalInfo] Final result - CAS: ${cas}, casExists: ${casExists}, chemicalName: ${chemicalName}`);
 
   // For now, we'll use the data from CAS list
   // In the future, we could add stats via /api/by_column if needed
