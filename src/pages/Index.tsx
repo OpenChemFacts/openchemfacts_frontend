@@ -8,7 +8,7 @@ import { BenchmarkComparison } from "@/components/BenchmarkComparison";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
-  const [selectedCas, setSelectedCas] = useState<string>("");
+  const [selectedCas, setSelectedCas] = useState<string>("50-00-0");
 
   return (
     <div className="min-h-screen bg-background">
