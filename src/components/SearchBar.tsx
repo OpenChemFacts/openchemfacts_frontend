@@ -34,15 +34,29 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
 
   const handleSearch = () => {
     if (!searchTerm.trim()) {
-      toast.error("Please enter a CAS number");
+      toast.error("Please enter a CAS number or chemical name");
       return;
     }
     
+    // Try exact CAS match first
     if (casList?.includes(searchTerm)) {
       onCasSelect(searchTerm);
       setShowSuggestions(false);
     } else {
-      toast.error("CAS number not found");
+      // Try case-insensitive partial match
+      const matchedCas = casList?.find(cas => 
+        cas.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      
+      if (matchedCas) {
+        onCasSelect(matchedCas);
+        setShowSuggestions(false);
+      } else {
+        // Accept the input as-is (might be a chemical name)
+        // The API will handle validation
+        onCasSelect(searchTerm);
+        setShowSuggestions(false);
+      }
     }
   };
 
@@ -60,7 +74,7 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
         <div className="relative flex-1">
           <Input
             type="text"
-            placeholder="Search for a CAS number (e.g., 50-00-0)..."
+            placeholder="Search by CAS number or chemical name (e.g., 42576-02-3)..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);

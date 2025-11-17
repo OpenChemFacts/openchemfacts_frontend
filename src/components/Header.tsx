@@ -17,7 +17,7 @@ export const Header = () => {
           </div>
           
           <a 
-            href="https://openchemfacts.gitbook.io/openchemfacts-docs/"
+            href="https://app.gitbook.com/invite/dQydSEllS3T0vyzF2UXh/DBlIC7FjfdDHgkLJZTTh"
             target="_blank"
             rel="noopener noreferrer"
           >

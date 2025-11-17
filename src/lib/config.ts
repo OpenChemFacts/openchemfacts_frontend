@@ -7,9 +7,7 @@
  */
 export const API_BASE_URL = 
   import.meta.env.VITE_API_BASE_URL || 
-  (import.meta.env.DEV 
-    ? 'http://localhost:8000' 
-    : 'https://api-production-e40f.up.railway.app');
+  'https://api-production-e40f.up.railway.app';
 
 export const API_ENDPOINTS = {
   ROOT: '/',
