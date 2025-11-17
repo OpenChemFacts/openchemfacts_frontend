@@ -71,6 +71,7 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
             }, {} as any);
           
           // Construire le layout amélioré en préservant TOUS les éléments originaux
+          // IMPORTANT: Commencer par une copie profonde du layout original pour éviter d'écraser des propriétés
           const enhancedLayout = {
             // D'abord, préserver TOUS les éléments du layout original
             ...data.layout,
@@ -80,35 +81,44 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
             showlegend: data.layout.showlegend !== false, // Préserver la valeur originale si définie
             
             // Marges : fusionner intelligemment (préserver les valeurs originales, ajouter des défauts si manquantes)
-            margin: {
+            margin: data.layout.margin ? {
               l: 80,
               r: 120,
               t: 100,
               b: 120,
               pad: 10,
               ...data.layout.margin, // Les valeurs originales écrasent les défauts
+            } : {
+              l: 80,
+              r: 120,
+              t: 100,
+              b: 120,
+              pad: 10,
             },
             
             // Font : fusionner avec la font existante
-            font: {
+            font: data.layout.font ? {
               size: 12,
               ...data.layout.font, // Les valeurs originales écrasent les défauts
+            } : {
+              size: 12,
             },
             
             // Axe X principal : préserver toutes les propriétés et améliorer seulement automargin
-            xaxis: {
+            xaxis: data.layout.xaxis ? {
               ...data.layout.xaxis, // D'abord préserver toutes les valeurs originales
-              automargin: data.layout.xaxis?.automargin ?? true, // Ajouter automargin seulement si absent
+              automargin: data.layout.xaxis.automargin ?? true, // Ajouter automargin seulement si absent
+            } : {
+              automargin: true,
             },
             
             // Axe Y principal : préserver toutes les propriétés et améliorer seulement automargin
-            yaxis: {
+            yaxis: data.layout.yaxis ? {
               ...data.layout.yaxis, // D'abord préserver toutes les valeurs originales
-              automargin: data.layout.yaxis?.automargin ?? true, // Ajouter automargin seulement si absent
+              automargin: data.layout.yaxis.automargin ?? true, // Ajouter automargin seulement si absent
+            } : {
+              automargin: true,
             },
-            
-            // Ajouter les axes secondaires préservés
-            ...secondaryAxes,
             
             // Légende : fusionner avec la configuration existante
             legend: data.layout.legend ? {
@@ -120,9 +130,11 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
               xanchor: data.layout.legend.xanchor ?? 'left',
               yanchor: data.layout.legend.yanchor ?? 'top',
               visible: data.layout.legend.visible !== false,
-              font: {
+              font: data.layout.legend.font ? {
                 size: 11, // Valeur par défaut
                 ...data.layout.legend.font, // Les valeurs originales écrasent les défauts
+              } : {
+                size: 11,
               },
             } : {
               // Valeurs par défaut si aucune légende n'est définie
@@ -135,10 +147,29 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
               font: { size: 11 },
             },
           };
+          
+          // Ajouter les axes secondaires APRÈS avoir défini xaxis et yaxis pour éviter les conflits
+          Object.assign(enhancedLayout, secondaryAxes);
 
           // Préserver 100% des traces (data) sans modification
           // data.data contient toutes les traces (courbes, scatter, barres, etc.)
           const allTraces = Array.isArray(data.data) ? data.data : [];
+          
+          // Vérifier que les traces ont bien des données
+          const validTraces = allTraces.filter(trace => {
+            // Une trace est valide si elle a au moins x ou y défini
+            const hasData = (trace.x !== undefined && trace.x !== null) || 
+                           (trace.y !== undefined && trace.y !== null) ||
+                           (trace.z !== undefined && trace.z !== null);
+            if (!hasData) {
+              console.warn('[PlotViewer] Trace sans données:', trace);
+            }
+            return hasData;
+          });
+          
+          if (validTraces.length === 0 && allTraces.length > 0) {
+            console.error('[PlotViewer] Aucune trace valide trouvée parmi', allTraces.length, 'traces');
+          }
           
           // Configuration : fusionner avec la config originale
           const plotConfig = {
@@ -150,20 +181,70 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
           };
 
           console.log('[PlotViewer] Rendering plot with:', {
-            tracesCount: allTraces.length,
+            totalTraces: allTraces.length,
+            validTraces: validTraces.length,
             layoutKeys: Object.keys(enhancedLayout),
             hasAnnotations: !!enhancedLayout.annotations,
             hasShapes: !!enhancedLayout.shapes,
             hasImages: !!enhancedLayout.images,
             secondaryAxes: Object.keys(secondaryAxes),
+            traceTypes: allTraces.map((t: any) => t.type || 'unknown'),
+            traceModes: allTraces.map((t: any) => t.mode || 'none'),
           });
+          
+          // Utiliser les traces valides, ou toutes les traces si aucune n'est marquée invalide
+          const tracesToRender = validTraces.length > 0 ? validTraces : allTraces;
 
-          (window as any).Plotly.newPlot(
-            plotRef.current,
-            allTraces, // Utiliser toutes les traces sans modification
-            enhancedLayout,
-            plotConfig
-          );
+          // S'assurer que le conteneur est visible avant de rendre
+          let containerCheckInterval: ReturnType<typeof setInterval> | null = null;
+          
+          if (plotRef.current && plotRef.current.offsetWidth > 0 && plotRef.current.offsetHeight > 0) {
+            (window as any).Plotly.newPlot(
+              plotRef.current,
+              tracesToRender, // Utiliser les traces valides
+              enhancedLayout,
+              plotConfig
+            ).then(() => {
+              console.log('[PlotViewer] Plot rendered successfully');
+              // Forcer un redraw après un court délai pour s'assurer que tout est affiché
+              setTimeout(() => {
+                if (plotRef.current && (window as any).Plotly) {
+                  (window as any).Plotly.Plots.resize(plotRef.current);
+                }
+              }, 100);
+            }).catch((err: any) => {
+              console.error('[PlotViewer] Error during Plotly.newPlot:', err);
+            });
+          } else {
+            console.warn('[PlotViewer] Container not ready, waiting...');
+            // Attendre que le conteneur soit prêt
+            containerCheckInterval = setInterval(() => {
+              if (plotRef.current && plotRef.current.offsetWidth > 0 && plotRef.current.offsetHeight > 0) {
+                if (containerCheckInterval) {
+                  clearInterval(containerCheckInterval);
+                  containerCheckInterval = null;
+                }
+                (window as any).Plotly.newPlot(
+                  plotRef.current,
+                  tracesToRender,
+                  enhancedLayout,
+                  plotConfig
+                ).then(() => {
+                  console.log('[PlotViewer] Plot rendered successfully after wait');
+                }).catch((err: any) => {
+                  console.error('[PlotViewer] Error during Plotly.newPlot:', err);
+                });
+              }
+            }, 100);
+            
+            // Arrêter après 5 secondes
+            setTimeout(() => {
+              if (containerCheckInterval) {
+                clearInterval(containerCheckInterval);
+                containerCheckInterval = null;
+              }
+            }, 5000);
+          }
 
           const resizeHandler = () => {
             if (plotRef.current && (window as any).Plotly) {
@@ -173,6 +254,10 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
           window.addEventListener("resize", resizeHandler);
           return () => {
             window.removeEventListener("resize", resizeHandler);
+            // Nettoyer l'intervalle de vérification du conteneur
+            if (containerCheckInterval) {
+              clearInterval(containerCheckInterval);
+            }
             // Nettoyer le graphique lors du démontage
             if (plotRef.current && (window as any).Plotly) {
               (window as any).Plotly.purge(plotRef.current);
