@@ -143,6 +143,12 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
           
           // Construire le layout amélioré en préservant TOUS les éléments originaux
           // IMPORTANT: Commencer par une copie profonde du layout original pour éviter d'écraser des propriétés
+          // Pour EC10eq, augmenter les marges pour éviter le chevauchement des points
+          const isEC10eq = type === 'ec10eq';
+          const baseMargin = isEC10eq 
+            ? { l: 100, r: 150, t: 120, b: 200, pad: 15 } // Marges plus grandes pour EC10eq
+            : { l: 80, r: 120, t: 100, b: 120, pad: 10 }; // Marges normales pour SSD
+          
           const enhancedLayout = {
             // D'abord, préserver TOUS les éléments du layout original
             ...data.layout,
@@ -153,19 +159,9 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
             
             // Marges : fusionner intelligemment (préserver les valeurs originales, ajouter des défauts si manquantes)
             margin: data.layout.margin ? {
-              l: 80,
-              r: 120,
-              t: 100,
-              b: 120,
-              pad: 10,
+              ...baseMargin,
               ...data.layout.margin, // Les valeurs originales écrasent les défauts
-            } : {
-              l: 80,
-              r: 120,
-              t: 100,
-              b: 120,
-              pad: 10,
-            },
+            } : baseMargin,
             
             // Font : fusionner avec la font existante
             font: data.layout.font ? {
@@ -179,8 +175,23 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
             xaxis: data.layout.xaxis ? {
               ...data.layout.xaxis, // D'abord préserver toutes les valeurs originales
               automargin: data.layout.xaxis.automargin ?? true, // Ajouter automargin seulement si absent
+              // Pour EC10eq, améliorer l'affichage des catégories
+              ...(isEC10eq ? {
+                tickangle: data.layout.xaxis.tickangle ?? -45, // Incliner les labels à -45° par défaut
+                tickfont: {
+                  size: data.layout.xaxis.tickfont?.size ?? 10,
+                  ...data.layout.xaxis.tickfont,
+                },
+                // Augmenter l'espacement entre les catégories
+                categoryorder: data.layout.xaxis.categoryorder || 'category ascending',
+                categoryarray: data.layout.xaxis.categoryarray,
+              } : {}),
             } : {
               automargin: true,
+              ...(isEC10eq ? {
+                tickangle: -45,
+                tickfont: { size: 10 },
+              } : {}),
             },
             
             // Axe Y principal : préserver toutes les propriétés et améliorer seulement automargin
@@ -223,7 +234,33 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
           Object.assign(enhancedLayout, secondaryAxes);
 
           // Utiliser les traces décodées (déjà traitées par processPlotlyTraces)
-          const allTraces = processedTraces;
+          let allTraces = processedTraces;
+          
+          // Pour EC10eq, améliorer les traces pour éviter le chevauchement
+          if (isEC10eq) {
+            allTraces = allTraces.map((trace: any) => {
+              // Si c'est un scatter plot, ajouter des propriétés pour améliorer la visibilité
+              if (trace.type === 'scatter' || !trace.type) {
+                return {
+                  ...trace,
+                  // Réduire légèrement la taille des points si beaucoup de données
+                  marker: {
+                    ...trace.marker,
+                    size: trace.marker?.size ? Math.min(trace.marker.size, 8) : 6, // Limiter la taille max
+                    opacity: trace.marker?.opacity ?? 0.7, // Légère transparence pour voir les chevauchements
+                    line: trace.marker?.line || {
+                      width: 0.5,
+                      color: 'white',
+                    },
+                  },
+                  // Ajouter un jitter si beaucoup de points se chevauchent
+                  // (Plotly gère cela automatiquement avec le mode 'markers')
+                  mode: trace.mode || 'markers',
+                };
+              }
+              return trace;
+            });
+          }
           
           // Vérifier que les traces ont bien des données (après décodage)
           const validTraces = allTraces.filter(trace => {
@@ -500,7 +537,10 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div ref={plotRef} className="w-full h-[500px] md:h-[600px]" />
+        <div 
+          ref={plotRef} 
+          className={`w-full ${type === 'ec10eq' ? 'h-[600px] md:h-[700px]' : 'h-[500px] md:h-[600px]'}`}
+        />
       </CardContent>
     </Card>
   );
