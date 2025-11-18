@@ -49,10 +49,11 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
 
   const filteredCas = searchTerm
     ? casList.filter((item) => {
-        const normalizedSearch = normalizeCas(searchTerm).toLowerCase();
+        const searchLower = searchTerm.toLowerCase().trim();
+        const normalizedCasSearch = normalizeCas(searchTerm).toLowerCase();
         const normalizedCas = normalizeCas(item.cas_number).toLowerCase();
         const normalizedName = item.chemical_name?.toLowerCase() || '';
-        return normalizedCas.includes(normalizedSearch) || normalizedName.includes(normalizedSearch);
+        return normalizedCas.includes(normalizedCasSearch) || normalizedName.includes(searchLower);
       }).slice(0, 10)
     : [];
 

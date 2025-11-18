@@ -91,15 +91,16 @@ export const BenchmarkComparison = () => {
     const term = searchTerms[index];
     if (!term) return [];
     
-    const normalizedTerm = normalizeCas(term).toLowerCase();
+    const searchLower = term.toLowerCase().trim();
+    const normalizedCasSearch = normalizeCas(term).toLowerCase();
     
     return casList
       .filter((item) => {
         const normalizedCas = normalizeCas(item.cas_number).toLowerCase();
         const normalizedName = item.chemical_name?.toLowerCase() || '';
         const matchesTerm = 
-          normalizedCas.includes(normalizedTerm) ||
-          normalizedName.includes(normalizedTerm);
+          normalizedCas.includes(normalizedCasSearch) ||
+          normalizedName.includes(searchLower);
         // Vérifier que le CAS n'est pas déjà sélectionné (avec normalisation)
         const notAlreadySelected = !selectedCas.some(selected => compareCas(selected, item.cas_number));
         return matchesTerm && notAlreadySelected;
