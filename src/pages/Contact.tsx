@@ -38,7 +38,7 @@ const Contact = () => {
                   Have a question or want to collaborate? Drop us a message.
                 </p>
                 <div className="flex items-center gap-3">
-                  <Button asChild>
+                  <Button asChild variant="outline">
                     <a 
                       href="mailto:alban@openchemfacts.com"
                       onClick={() => setShowEmail(true)}
