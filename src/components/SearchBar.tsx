@@ -23,25 +23,25 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
 
   const { casList, error } = useCasList();
 
-  // Log debug: vérifier combien de substances ont un chemical_name
+  // Debug log: check how many substances have a chemical_name
   useEffect(() => {
     if (casList.length > 0) {
       const withNames = casList.filter(item => item.chemical_name).length;
-      console.log(`[SearchBar] ${casList.length} substances chargées, ${withNames} ont un nom chimique (${Math.round(withNames/casList.length*100)}%)`);
+      console.log(`[SearchBar] ${casList.length} substances loaded, ${withNames} have a chemical name (${Math.round(withNames/casList.length*100)}%)`);
       
-      // Afficher quelques exemples
+      // Display some examples
       const examples = casList.filter(item => item.chemical_name).slice(0, 5);
-      console.log('[SearchBar] Exemples de noms:', examples.map(item => `${item.cas_number}: ${item.chemical_name}`));
+      console.log('[SearchBar] Name examples:', examples.map(item => `${item.cas_number}: ${item.chemical_name}`));
     }
   }, [casList]);
 
-  // Afficher une notification si erreur de chargement de la liste (une seule fois)
+  // Show a notification if list loading error (only once)
   useEffect(() => {
     if (error && !errorShown) {
-      toast.error(error.message || "Impossible de charger la liste des produits chimiques");
+      toast.error(error.message || "Unable to load the chemical list");
       setErrorShown(true);
     }
-    // Réinitialiser le flag si l'erreur disparaît (requête réussie)
+    // Reset the flag if the error disappears (successful request)
     if (!error && errorShown) {
       setErrorShown(false);
     }
@@ -57,25 +57,25 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
       }).slice(0, 10)
     : [];
 
-  // Log debug: afficher les résultats du filtre
+  // Debug log: display filter results
   useEffect(() => {
     if (searchTerm && filteredCas.length > 0) {
-      console.log(`[SearchBar] "${searchTerm}" -> ${filteredCas.length} résultat(s)`);
+      console.log(`[SearchBar] "${searchTerm}" -> ${filteredCas.length} result(s)`);
     } else if (searchTerm && filteredCas.length === 0) {
-      console.log(`[SearchBar] "${searchTerm}" -> aucun résultat`);
+      console.log(`[SearchBar] "${searchTerm}" -> no result`);
     }
   }, [searchTerm, filteredCas]);
 
   const handleSearch = () => {
     const trimmedSearch = searchTerm.trim();
     if (!trimmedSearch) {
-      toast.error("Veuillez entrer un numéro CAS ou un nom de produit chimique");
+      toast.error("Please enter a CAS number or chemical name");
       return;
     }
     
     const normalizedSearch = normalizeCas(trimmedSearch);
     
-    // Try exact CAS match first (normalisé)
+    // Try exact CAS match first (normalized)
     const exactMatch = casList.find(item => compareCas(item.cas_number, normalizedSearch));
     if (exactMatch) {
       onCasSelect({
@@ -87,7 +87,7 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
       return;
     }
     
-    // Try case-insensitive match on CAS (normalisé) or name
+    // Try case-insensitive match on CAS (normalized) or name
     const matchedItem = casList.find(item => 
       compareCas(item.cas_number, normalizedSearch) ||
       item.chemical_name?.toLowerCase().trim() === trimmedSearch.toLowerCase()
@@ -101,7 +101,7 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
       setSearchTerm(matchedItem.cas_number);
       setShowSuggestions(false);
     } else {
-      // Si on a des suggestions filtrées, prendre la première
+      // If we have filtered suggestions, take the first one
       if (filteredCas.length > 0) {
         onCasSelect({
           cas: filteredCas[0].cas_number,
@@ -109,11 +109,11 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
         });
         setSearchTerm(filteredCas[0].cas_number);
         setShowSuggestions(false);
-        toast.info(`Substance sélectionnée : ${filteredCas[0].cas_number}`);
+        toast.info(`Substance selected: ${filteredCas[0].cas_number}`);
       } else {
-        // Accepter l'entrée normalisée et laisser l'API valider
-        // Ne pas afficher d'erreur ici car la substance pourrait exister dans la base
-        // même si elle n'est pas dans la liste locale (liste peut être incomplète)
+        // Accept the normalized input and let the API validate
+        // Don't display an error here as the substance might exist in the database
+        // even if it's not in the local list (list may be incomplete)
         onCasSelect({
           cas: normalizedSearch,
           chemical_name: undefined,
@@ -138,7 +138,7 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
           <div className="relative flex-1">
             <Input
               type="text"
-              placeholder="Rechercher par numéro CAS ou nom de produit chimique (ex: 42576-02-3)..."
+              placeholder="Search by CAS number or chemical name (e.g.: 42576-02-3)..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -151,7 +151,7 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
           </div>
           <Button onClick={handleSearch} size="lg" className="h-12 px-6 font-semibold">
-            Rechercher
+            Search
           </Button>
         </div>
       </div>
@@ -181,7 +181,7 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
             ))
           ) : (
             <div className="px-4 py-3 text-sm text-muted-foreground text-center">
-              Aucune substance trouvée pour "{searchTerm}"
+              No substance found for "{searchTerm}"
             </div>
           )}
         </Card>

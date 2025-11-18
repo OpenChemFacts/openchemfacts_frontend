@@ -42,37 +42,37 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
   useEffect(() => {
     if (data && plotRef.current && plotlyLoaded && Plotly) {
       try {
-        // Vérifier que les données Plotly sont valides
+        // Verify that Plotly data is valid
         if (data.data && data.layout) {
-          // Nettoyer le graphique existant avant d'en créer un nouveau
+          // Clean existing chart before creating a new one
           Plotly.purge(plotRef.current);
 
-          // Décoder les traces
+          // Decode traces
           let processedTraces = processPlotlyTraces(data.data || []);
           
-          // Pour EC10eq, améliorer les traces pour éviter le chevauchement
+          // For EC10eq, enhance traces to avoid overlap
           if (type === 'ec10eq') {
             processedTraces = enhanceEC10eqTraces(processedTraces);
           }
           
-          // Valider les traces
+          // Validate traces
           const validTraces = validatePlotlyTraces(processedTraces);
           const tracesToRender = validTraces.length > 0 ? validTraces : processedTraces;
 
-          // Créer le layout amélioré
+          // Create enhanced layout
           const enhancedLayout = createEnhancedLayout({
             type,
             originalLayout: data.layout,
           });
 
-          // Créer la configuration
+          // Create configuration
           const plotConfig = createPlotlyConfig(data.config);
 
-          // S'assurer que le conteneur est visible avant de rendre
+          // Ensure container is visible before rendering
           if (plotRef.current && plotRef.current.offsetWidth > 0 && plotRef.current.offsetHeight > 0) {
             Plotly.newPlot(plotRef.current, tracesToRender, enhancedLayout, plotConfig)
               .then(() => {
-                // Forcer un redraw après un court délai
+                // Force a redraw after a short delay
                 setTimeout(() => {
                   if (plotRef.current && Plotly) {
                     Plotly.Plots.resize(plotRef.current);
@@ -83,7 +83,7 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
                 console.error('[PlotViewer] Error during Plotly.newPlot:', err);
               });
           } else {
-            // Attendre que le conteneur soit prêt
+            // Wait for container to be ready
             const containerCheckInterval = setInterval(() => {
               if (plotRef.current && plotRef.current.offsetWidth > 0 && plotRef.current.offsetHeight > 0) {
                 clearInterval(containerCheckInterval);
@@ -94,13 +94,13 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
               }
             }, 100);
             
-            // Arrêter après 5 secondes
+            // Stop after 5 seconds
             setTimeout(() => {
               clearInterval(containerCheckInterval);
             }, 5000);
           }
 
-          // Gérer le redimensionnement
+          // Handle resizing
           const resizeHandler = () => {
             if (plotRef.current && Plotly) {
               Plotly.Plots.resize(plotRef.current);
@@ -127,12 +127,12 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
     return (
       <ErrorDisplay 
         error={error} 
-        title="Erreur lors du chargement du graphique"
+        title="Error loading chart"
       />
     );
   }
 
-  // Si les données sont chargées mais Plotly n'est pas encore prêt, afficher un skeleton
+  // If data is loaded but Plotly is not ready yet, display a skeleton
   if ((data && !plotlyLoaded) || isLoading) {
     return (
       <Card className="shadow-card">

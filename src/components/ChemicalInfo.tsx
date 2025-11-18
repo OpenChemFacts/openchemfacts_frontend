@@ -24,16 +24,16 @@ export const ChemicalInfo = ({ cas, chemical_name: propChemicalName }: ChemicalI
   const normalizedCas = cas ? normalizeCas(cas) : '';
   const [chemicalName, setChemicalName] = useState<string | undefined>(propChemicalName);
   
-  // Utiliser le hook partagé pour obtenir la liste des CAS
+  // Use the shared hook to get the CAS list
   const { getChemicalName, isLoading, casList } = useCasList();
   
-  // Récupérer systématiquement le nom chimique si pas déjà fourni en props
+  // Systematically retrieve the chemical name if not already provided in props
   useEffect(() => {
     if (propChemicalName) {
-      // Si un nom est fourni en props, l'utiliser
+      // If a name is provided in props, use it
       setChemicalName(propChemicalName);
     } else if (normalizedCas && casList.length > 0) {
-      // Chercher le nom dans la liste des CAS en utilisant compareCas
+      // Search for the name in the CAS list using compareCas
       const item = casList.find((item) => compareCas(item.cas_number, normalizedCas));
       if (item?.chemical_name) {
         setChemicalName(item.chemical_name);
@@ -85,7 +85,7 @@ export const ChemicalInfo = ({ cas, chemical_name: propChemicalName }: ChemicalI
             ) : chemicalName ? (
               <p className="font-semibold text-lg">{chemicalName}</p>
             ) : (
-              <p className="font-semibold text-muted-foreground italic">Nom non disponible</p>
+              <p className="font-semibold text-muted-foreground italic">Name not available</p>
             )}
           </div>
         </div>

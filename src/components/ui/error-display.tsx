@@ -10,12 +10,12 @@ interface ErrorDisplayProps {
 }
 
 /**
- * Composant réutilisable pour afficher les erreurs API
+ * Reusable component for displaying API errors
  */
 export const ErrorDisplay = ({
   error,
   title,
-  defaultMessage = "Erreur lors du chargement",
+  defaultMessage = "Error loading",
   className = "",
 }: ErrorDisplayProps) => {
   const errorMessage =
@@ -26,7 +26,7 @@ export const ErrorDisplay = ({
       : defaultMessage;
 
   const isNotFound = error instanceof ApiError && error.status === 404;
-  const displayTitle = title || (isNotFound ? "Ressource non trouvée" : "Erreur");
+  const displayTitle = title || (isNotFound ? "Resource not found" : "Error");
 
   return (
     <Card className={`shadow-card border-destructive ${className}`}>

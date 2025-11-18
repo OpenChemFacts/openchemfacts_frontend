@@ -24,7 +24,7 @@ export const BenchmarkComparison = () => {
   const [showSuggestions, setShowSuggestions] = useState<number | null>(null);
   const plotRef = useRef<HTMLDivElement>(null);
 
-  // Utiliser les hooks partagés
+  // Use shared hooks
   const { casList, getChemicalName } = useCasList();
   const { plotlyLoaded, Plotly } = usePlotly();
 
@@ -44,27 +44,27 @@ export const BenchmarkComparison = () => {
   useEffect(() => {
     if (plotData && plotRef.current && plotlyLoaded && Plotly) {
       try {
-        // Décoder les traces avant de les afficher
+        // Decode traces before displaying them
         const processedTraces = processPlotlyTraces(plotData.data || []);
         
-        // Vérifier que les données Plotly sont valides
+        // Verify that Plotly data is valid
         if (processedTraces.length > 0 && plotData.layout) {
-          // Nettoyer le graphique existant avant d'en créer un nouveau
+          // Clean existing chart before creating a new one
           Plotly.purge(plotRef.current);
 
-          // Créer le layout amélioré
+          // Create enhanced layout
           const enhancedLayout = createEnhancedLayout({
             type: 'comparison',
             originalLayout: plotData.layout,
           });
 
-          // Créer la configuration
+          // Create configuration
           const plotConfig = createPlotlyConfig(plotData.config);
 
-          // Rendre le graphique
+          // Render the chart
           Plotly.newPlot(plotRef.current, processedTraces, enhancedLayout, plotConfig);
 
-          // Gérer le redimensionnement
+          // Handle resizing
           const resizeHandler = () => {
             if (plotRef.current && Plotly) {
               Plotly.Plots.resize(plotRef.current);
@@ -101,7 +101,7 @@ export const BenchmarkComparison = () => {
         const matchesTerm = 
           normalizedCas.includes(normalizedCasSearch) ||
           normalizedName.includes(searchLower);
-        // Vérifier que le CAS n'est pas déjà sélectionné (avec normalisation)
+        // Check that the CAS is not already selected (with normalization)
         const notAlreadySelected = !selectedCas.some(selected => compareCas(selected, item.cas_number));
         return matchesTerm && notAlreadySelected;
       })
@@ -110,7 +110,7 @@ export const BenchmarkComparison = () => {
 
   const handleAddCas = (cas: string, name: string | undefined, index: number) => {
     if (selectedCas.length >= 3) {
-      toast.error("Maximum 3 substances pour la comparaison");
+      toast.error("Maximum 3 substances for comparison");
       return;
     }
     setSelectedCas([...selectedCas, cas]);
@@ -126,7 +126,7 @@ export const BenchmarkComparison = () => {
     setSelectedCas(selectedCas.filter((c) => c !== cas));
   };
 
-  // Utiliser la fonction du hook pour obtenir le nom chimique
+  // Use the hook function to get the chemical name
   const getChemicalNameForDisplay = (cas: string): string => {
     if (!cas) return '';
     const normalizedCas = normalizeCas(cas);
@@ -139,16 +139,16 @@ export const BenchmarkComparison = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-accent" />
-          Benchmark - Comparaison SSD
+          Benchmark - SSD Comparison
         </CardTitle>
         <CardDescription>
-          Comparez les distributions de sensibilité des espèces (SSD) entre 2 ou 3 substances
+          Compare species sensitivity distributions (SSD) between 2 or 3 substances
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Selection des substances */}
+        {/* Substance selection */}
         <div className="space-y-4">
-          <h3 className="text-sm font-medium">Sélectionnez 2-3 substances :</h3>
+          <h3 className="text-sm font-medium">Select 2-3 substances:</h3>
           
           {/* Selected substances */}
           {selectedCas.length > 0 && (
@@ -186,7 +186,7 @@ export const BenchmarkComparison = () => {
                         setShowSuggestions(selectedCas.length + index);
                       }}
                       onFocus={() => setShowSuggestions(selectedCas.length + index)}
-                      placeholder="Rechercher par CAS ou nom..."
+                      placeholder="Search by CAS or name..."
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     />
                     <Button variant="outline" size="icon" disabled>
@@ -221,7 +221,7 @@ export const BenchmarkComparison = () => {
                           ))}
                           {getFilteredSuggestions(selectedCas.length + index).length === 0 && (
                             <div className="text-sm text-muted-foreground p-3">
-                              Aucune substance trouvée
+                              No substance found
                             </div>
                           )}
                         </CardContent>
@@ -237,7 +237,7 @@ export const BenchmarkComparison = () => {
         {selectedCas.length < 2 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
             <BarChart3 className="h-12 w-12 mb-4 opacity-50" />
-            <p>Sélectionnez au moins 2 substances pour voir la comparaison</p>
+            <p>Select at least 2 substances to see the comparison</p>
           </div>
         ) : isLoading || !plotlyLoaded ? (
           <Skeleton className="h-96 w-full" />

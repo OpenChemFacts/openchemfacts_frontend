@@ -11,14 +11,14 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: (failureCount, error: any) => {
-        // Ne pas retry pour les erreurs 4xx (sauf 408, 429)
+        // Don't retry for 4xx errors (except 408, 429)
         if (error?.status >= 400 && error?.status < 500) {
           if (error?.status === 408 || error?.status === 429) {
-            return failureCount < 2; // Retry jusqu'à 2 fois pour timeout/rate limit
+            return failureCount < 2; // Retry up to 2 times for timeout/rate limit
           }
           return false;
         }
-        // Retry jusqu'à 3 fois pour les erreurs 5xx et erreurs réseau
+        // Retry up to 3 times for 5xx errors and network errors
         return failureCount < 3;
       },
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),

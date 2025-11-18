@@ -1,26 +1,26 @@
 /**
- * Configuration de l'API Scalingo
+ * Scalingo API Configuration
  * 
- * L'URL peut être définie via la variable d'environnement VITE_API_BASE_URL.
- * Si non définie, utilise l'URL par défaut selon l'environnement :
- * - Développement local (DEV=true) : http://localhost:8000
- * - Production : https://openchemfacts-api.osc-fr1.scalingo.io
+ * The URL can be set via the VITE_API_BASE_URL environment variable.
+ * If not set, uses the default URL according to the environment:
+ * - Local development (DEV=true): http://localhost:8000
+ * - Production: https://openchemfacts-api.osc-fr1.scalingo.io
  * 
- * Pour utiliser le backend Scalingo en développement, définir dans .env :
+ * To use the Scalingo backend in development, set in .env:
  * VITE_API_BASE_URL=https://openchemfacts-api.osc-fr1.scalingo.io
  * 
- * Pour utiliser le backend local, soit :
- * - Ne pas définir VITE_API_BASE_URL (utilisera localhost:8000 en dev)
- * - Ou définir VITE_API_BASE_URL=http://localhost:8000
+ * To use the local backend, either:
+ * - Don't set VITE_API_BASE_URL (will use localhost:8000 in dev)
+ * - Or set VITE_API_BASE_URL=http://localhost:8000
  */
 const getApiBaseUrl = (): string => {
-  // Si VITE_API_BASE_URL est explicitement défini, l'utiliser
+  // If VITE_API_BASE_URL is explicitly set, use it
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL;
   }
 
-  // Cas particulier: en DEV mais pas sur localhost (ex: preview Lovable),
-  // on utilise l'API Scalingo pour éviter les erreurs de connexion à localhost
+  // Special case: in DEV but not on localhost (e.g., Lovable preview),
+  // use the Scalingo API to avoid connection errors to localhost
   const isHostedDev = import.meta.env.DEV
     && typeof window !== 'undefined'
     && window.location.hostname !== 'localhost'
@@ -30,7 +30,7 @@ const getApiBaseUrl = (): string => {
     return 'https://openchemfacts-api.osc-fr1.scalingo.io';
   }
 
-  // Sinon, utiliser les valeurs par défaut selon l'environnement
+  // Otherwise, use default values according to the environment
   return import.meta.env.DEV 
     ? 'http://localhost:8000' 
     : 'https://openchemfacts-api.osc-fr1.scalingo.io';
@@ -38,7 +38,7 @@ const getApiBaseUrl = (): string => {
 
 export const API_BASE_URL = getApiBaseUrl();
 
-// Log de débogage en développement
+// Debug log in development
 if (import.meta.env.DEV) {
   console.log(`[API Config] Base URL: ${API_BASE_URL}`);
   console.log(`[API Config] Environment: ${import.meta.env.MODE}`);
@@ -54,16 +54,16 @@ export const API_ENDPOINTS = {
   SSD_PLOT: (cas: string) => `/api/plot/ssd/${cas}`,
   EC10EQ_PLOT: (cas: string) => `/api/plot/ec10eq/${cas}`,
   /**
-   * Endpoint pour la comparaison de plusieurs SSD (max 3 substances).
+   * Endpoint for comparing multiple SSDs (max 3 substances).
    * 
-   * Note: Cet endpoint nécessite une liste de numéros CAS (maximum 3).
-   * L'implémentation frontend n'est pas encore disponible.
+   * Note: This endpoint requires a list of CAS numbers (maximum 3).
+   * Frontend implementation is now available.
    * 
-   * Format attendu par le backend (fonction plot_ssd_comparison):
-   * - Méthode: POST
-   * - Body JSON: { "cas_list": ["123-45-6", "789-01-2", "345-67-8"] }
-   * - Maximum 3 CAS numbers dans la liste
-   * - Retourne: Plotly figure au format JSON (fig.to_dict())
+   * Format expected by the backend (plot_ssd_comparison function):
+   * - Method: POST
+   * - JSON Body: { "cas_list": ["123-45-6", "789-01-2", "345-67-8"] }
+   * - Maximum 3 CAS numbers in the list
+   * - Returns: Plotly figure in JSON format (fig.to_dict())
    */
   SSD_COMPARISON: '/api/plot/ssd/comparison',
 };

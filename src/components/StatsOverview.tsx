@@ -89,7 +89,7 @@ export const StatsOverview = () => {
       <div className="mt-12">
         <ErrorDisplay 
           error={error} 
-          title="Erreur lors du chargement des statistiques"
+          title="Error loading statistics"
         />
       </div>
     );

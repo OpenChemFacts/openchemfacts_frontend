@@ -23,7 +23,7 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   
-  // Log de débogage en développement
+  // Debug log in development
   if (import.meta.env.DEV) {
     console.log(`[API] Fetching: ${url}`);
   }
@@ -35,45 +35,45 @@ export async function apiFetch<T>(
         "Content-Type": "application/json",
         ...options?.headers,
       },
-      // Ajouter les credentials pour les requêtes CORS si nécessaire
-      credentials: 'omit', // 'omit' par défaut, peut être changé en 'include' si nécessaire
+      // Add credentials for CORS requests if necessary
+      credentials: 'omit', // 'omit' by default, can be changed to 'include' if necessary
     });
 
-    // Gestion des erreurs HTTP
+    // HTTP error handling
     if (!response.ok) {
-      let errorMessage = "Une erreur est survenue";
+      let errorMessage = "An error occurred";
       
       switch (response.status) {
         case 404:
-          errorMessage = "Ressource non trouvée";
+          errorMessage = "Resource not found";
           break;
         case 500:
-          errorMessage = "Erreur serveur interne";
+          errorMessage = "Internal server error";
           break;
         case 503:
-          errorMessage = "Service temporairement indisponible";
+          errorMessage = "Service temporarily unavailable";
           break;
         case 400:
-          errorMessage = "Requête invalide";
+          errorMessage = "Invalid request";
           break;
         case 401:
-          errorMessage = "Non autorisé";
+          errorMessage = "Unauthorized";
           break;
         case 403:
-          errorMessage = "Accès interdit";
+          errorMessage = "Forbidden";
           break;
         default:
-          errorMessage = `Erreur ${response.status}: ${response.statusText}`;
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
       }
 
-      // Essayer de récupérer le message d'erreur du serveur
+      // Try to retrieve the error message from the server
       try {
         const errorData = await response.json();
         if (errorData.detail || errorData.message) {
           errorMessage = errorData.detail || errorData.message;
         }
       } catch {
-        // Si la réponse n'est pas du JSON, utiliser le message par défaut
+        // If the response is not JSON, use the default message
       }
 
       if (import.meta.env.DEV) {
@@ -91,9 +91,9 @@ export async function apiFetch<T>(
     
     return data;
   } catch (error) {
-    // Gestion des erreurs réseau et CORS
+    // Network and CORS error handling
     if (error instanceof TypeError) {
-      // Détecter les erreurs CORS spécifiquement
+      // Detect CORS errors specifically
       if (error.message.includes("Failed to fetch") || 
           error.message.includes("NetworkError") ||
           error.message.includes("fetch")) {
@@ -110,26 +110,26 @@ export async function apiFetch<T>(
         
         throw new ApiError(
           isCorsError
-            ? "Erreur CORS: Le serveur n'autorise pas les requêtes depuis cette origine. Vérifiez la configuration CORS du serveur."
-            : `Impossible de se connecter au serveur (${API_BASE_URL}). Vérifiez votre connexion réseau et que le serveur est démarré.`,
+            ? "CORS Error: The server does not allow requests from this origin. Check the server's CORS configuration."
+            : `Unable to connect to server (${API_BASE_URL}). Check your network connection and ensure the server is running.`,
           0,
           "Network Error"
         );
       }
     }
     
-    // Si c'est déjà une ApiError, la relancer
+    // If it's already an ApiError, rethrow it
     if (error instanceof ApiError) {
       throw error;
     }
     
-    // Erreur inconnue
+    // Unknown error
     if (import.meta.env.DEV) {
       console.error(`[API] Unknown error on ${url}:`, error);
     }
     
     throw new ApiError(
-      error instanceof Error ? error.message : "Erreur inconnue",
+      error instanceof Error ? error.message : "Unknown error",
       0,
       "Unknown Error"
     );

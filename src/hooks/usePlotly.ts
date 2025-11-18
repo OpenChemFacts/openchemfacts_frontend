@@ -3,35 +3,35 @@ import { useState, useEffect } from "react";
 const PLOTLY_SCRIPT_URL = "https://cdn.plot.ly/plotly-2.27.0.min.js";
 
 /**
- * Hook pour gérer le chargement dynamique de Plotly
- * Évite les chargements multiples et gère les cas de chargement asynchrone
+ * Hook to manage dynamic loading of Plotly
+ * Prevents multiple loads and handles asynchronous loading cases
  */
 export const usePlotly = () => {
   const [plotlyLoaded, setPlotlyLoaded] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // Vérifier d'abord si Plotly est déjà disponible
+    // First check if Plotly is already available
     if ((window as any).Plotly) {
       setPlotlyLoaded(true);
       return;
     }
 
-    // Vérifier si le script est déjà en cours de chargement ou déjà chargé
+    // Check if the script is already loading or already loaded
     const existingScript = document.querySelector(
       `script[src="${PLOTLY_SCRIPT_URL}"]`
     ) as HTMLScriptElement | null;
 
     if (existingScript) {
-      // Si le script existe, vérifier s'il est déjà chargé
+      // If the script exists, check if it's already loaded
       if ((window as any).Plotly) {
         setPlotlyLoaded(true);
         return;
       }
 
-      // Vérifier si le script est marqué comme chargé
+      // Check if the script is marked as loaded
       if (existingScript.getAttribute("data-loaded") === "true") {
-        // Attendre un peu au cas où Plotly se charge juste après
+        // Wait a bit in case Plotly loads right after
         const checkInterval = setInterval(() => {
           if ((window as any).Plotly) {
             setPlotlyLoaded(true);
@@ -39,7 +39,7 @@ export const usePlotly = () => {
           }
         }, 50);
 
-        // Arrêter après 2 secondes si Plotly ne se charge pas
+        // Stop after 2 seconds if Plotly doesn't load
         const timeoutId = setTimeout(() => {
           clearInterval(checkInterval);
         }, 2000);
@@ -50,7 +50,7 @@ export const usePlotly = () => {
         };
       }
 
-      // Le script est en cours de chargement, attendre l'événement load
+      // The script is loading, wait for the load event
       const handleLoad = () => {
         existingScript.setAttribute("data-loaded", "true");
         setPlotlyLoaded(true);
@@ -62,7 +62,7 @@ export const usePlotly = () => {
       };
     }
 
-    // Créer et charger le script si aucun script n'existe
+    // Create and load the script if no script exists
     const script = document.createElement("script");
     script.src = PLOTLY_SCRIPT_URL;
     script.async = true;
@@ -78,7 +78,7 @@ export const usePlotly = () => {
     document.body.appendChild(script);
 
     return () => {
-      // Pas de nettoyage du script car il peut être utilisé par d'autres composants
+      // No script cleanup as it may be used by other components
     };
   }, []);
 

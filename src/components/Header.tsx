@@ -19,7 +19,7 @@ export const Header = () => {
             </Link>
             
             <a 
-              href="https://app.gitbook.com/invite/dQydSEllS3T0vyzF2UXh/DBlIC7FjfdDHgkLJZTTh"
+              href="https://openchemfacts.gitbook.io/openchemfacts-docs/"
               target="_blank"
               rel="noopener noreferrer"
             >
