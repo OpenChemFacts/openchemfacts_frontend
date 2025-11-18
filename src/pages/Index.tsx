@@ -5,7 +5,6 @@ import { PlotViewer } from "@/components/PlotViewer";
 import { StatsOverview } from "@/components/StatsOverview";
 import { Header } from "@/components/Header";
 import { BenchmarkComparison } from "@/components/BenchmarkComparison";
-import { Contact } from "@/components/Contact";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
@@ -38,10 +37,9 @@ const Index = () => {
               />
               
               <Tabs defaultValue="ssd" className="w-full">
-                <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-3">
+                <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
                   <TabsTrigger value="ssd">SSD Distribution</TabsTrigger>
                   <TabsTrigger value="ec10">EC10 Equivalent</TabsTrigger>
-                  <TabsTrigger value="contact">Contact</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="ssd" className="mt-6">
@@ -50,10 +48,6 @@ const Index = () => {
                 
                 <TabsContent value="ec10" className="mt-6">
                   <PlotViewer cas={selectedChemical.cas} type="ec10eq" />
-                </TabsContent>
-                
-                <TabsContent value="contact" className="mt-6">
-                  <Contact />
                 </TabsContent>
               </Tabs>
             </>
