@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Mail, Video } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 
 const Contact = () => {
+  const [showEmail, setShowEmail] = useState(false);
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -35,11 +37,21 @@ const Contact = () => {
                 <p className="text-sm text-muted-foreground mb-3">
                   Have a question or want to collaborate? Drop us a message.
                 </p>
-                <Button asChild>
-                  <a href="mailto:alban@openchemfacts.com">
-                    Send Email
-                  </a>
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Button asChild>
+                    <a 
+                      href="mailto:alban@openchemfacts.com"
+                      onClick={() => setShowEmail(true)}
+                    >
+                      Send Email
+                    </a>
+                  </Button>
+                  {showEmail && (
+                    <span className="text-sm text-muted-foreground">
+                      alban@openchemfacts.com
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
