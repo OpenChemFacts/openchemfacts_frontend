@@ -15,8 +15,8 @@ interface CasListResponse {
 }
 
 /**
- * Hook personnalisé pour charger et gérer la liste des CAS
- * Centralise la logique de chargement et de conversion des données
+ * Custom hook to load and manage the CAS list
+ * Centralizes loading and data conversion logic
  */
 export const useCasList = () => {
   const { data: casListResponse, error, isLoading } = useQuery({
@@ -29,7 +29,7 @@ export const useCasList = () => {
     retry: false,
   });
 
-  // Convertir les données en format array pour faciliter l'utilisation
+  // Convert data to array format for easier use
   const casList: CasItem[] = casListResponse?.cas_with_names
     ? Array.isArray(casListResponse.cas_with_names)
       ? casListResponse.cas_with_names.map((item: any) => ({
@@ -44,9 +44,9 @@ export const useCasList = () => {
     : [];
 
   /**
-   * Trouve un CAS dans la liste par son numéro (normalisé)
-   * @param cas - Le numéro CAS à rechercher
-   * @returns L'item CAS trouvé ou undefined
+   * Finds a CAS in the list by its number (normalized)
+   * @param cas - The CAS number to search for
+   * @returns The found CAS item or undefined
    */
   const findCasItem = (cas: string): CasItem | undefined => {
     if (!cas || casList.length === 0) return undefined;
@@ -55,9 +55,9 @@ export const useCasList = () => {
   };
 
   /**
-   * Trouve le nom chimique associé à un CAS
-   * @param cas - Le numéro CAS
-   * @returns Le nom chimique ou undefined
+   * Finds the chemical name associated with a CAS
+   * @param cas - The CAS number
+   * @returns The chemical name or undefined
    */
   const getChemicalName = (cas: string): string | undefined => {
     const item = findCasItem(cas);

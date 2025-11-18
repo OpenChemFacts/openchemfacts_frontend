@@ -1,21 +1,21 @@
 /**
- * Utilitaires pour la gestion des numéros CAS (Chemical Abstracts Service)
+ * Utilities for managing CAS numbers (Chemical Abstracts Service)
  */
 
 /**
- * Normalise un numéro CAS en enlevant les espaces et en normalisant les tirets
- * @param cas - Le numéro CAS à normaliser
- * @returns Le numéro CAS normalisé
+ * Normalizes a CAS number by removing spaces and normalizing dashes
+ * @param cas - The CAS number to normalize
+ * @returns The normalized CAS number
  */
 export const normalizeCas = (cas: string): string => {
   return cas.trim().replace(/\s+/g, '').replace(/[–—]/g, '-');
 };
 
 /**
- * Compare deux numéros CAS de manière insensible à la casse et aux espaces
- * @param cas1 - Premier numéro CAS
- * @param cas2 - Deuxième numéro CAS
- * @returns true si les deux CAS sont identiques après normalisation
+ * Compares two CAS numbers in a case-insensitive and space-insensitive manner
+ * @param cas1 - First CAS number
+ * @param cas2 - Second CAS number
+ * @returns true if both CAS numbers are identical after normalization
  */
 export const compareCas = (cas1: string, cas2: string): boolean => {
   return normalizeCas(cas1).toLowerCase() === normalizeCas(cas2).toLowerCase();
