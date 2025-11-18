@@ -73,10 +73,20 @@ export const ChemicalInfo = ({ cas, chemical_name: propChemicalName }: ChemicalI
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-muted-foreground mb-1">CAS Number</p>
             <p className="font-mono font-semibold text-lg">{data?.cas_number}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Name</p>
+            {isLoading || (normalizedCas && !chemicalName && casList.length === 0) ? (
+              <Skeleton className="h-6 w-48" />
+            ) : chemicalName ? (
+              <p className="font-semibold text-lg">{chemicalName}</p>
+            ) : (
+              <p className="font-semibold text-muted-foreground italic">Nom non disponible</p>
+            )}
           </div>
         </div>
       </CardContent>
