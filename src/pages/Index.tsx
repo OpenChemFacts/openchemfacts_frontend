@@ -26,6 +26,16 @@ const Index = () => {
           </p>
         </div>
 
+        <div className="mb-8 max-w-2xl mx-auto">
+          <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-center">
+            <p className="text-sm font-medium text-foreground">
+              🚧 Platform under development
+              <span className="mx-2 text-muted-foreground">•</span>
+              First database ingested = Ecotox (US EPA)
+            </p>
+          </div>
+        </div>
+
         <SearchBar onCasSelect={setSelectedChemical} />
 
         <div className="mt-8 space-y-8">
