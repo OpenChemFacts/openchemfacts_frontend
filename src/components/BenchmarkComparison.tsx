@@ -7,27 +7,14 @@ import { BarChart3, AlertCircle, Plus, X } from "lucide-react";
 import { API_BASE_URL, API_ENDPOINTS } from "@/lib/config";
 import { ApiError } from "@/lib/api";
 import { toast } from "sonner";
-
-interface CasItem {
-  cas_number: string;
-  chemical_name?: string;
-}
+import { useCasList, type CasItem } from "@/hooks/useCasList";
+import { normalizeCas, compareCas } from "@/lib/cas-utils";
 
 interface PlotlyData {
   data: any[];
   layout: any;
   config?: any;
 }
-
-// Fonction pour normaliser un numéro CAS (enlever les espaces, normaliser les tirets)
-const normalizeCas = (cas: string): string => {
-  return cas.trim().replace(/\s+/g, '').replace(/[–—]/g, '-');
-};
-
-// Fonction pour comparer deux numéros CAS (insensible à la casse et aux espaces)
-const compareCas = (cas1: string, cas2: string): boolean => {
-  return normalizeCas(cas1).toLowerCase() === normalizeCas(cas2).toLowerCase();
-};
 
 // Fonction pour décoder les données numpy/base64 en tableaux JavaScript
 const decodeNumpyData = (data: any): any[] => {
@@ -78,30 +65,8 @@ export const BenchmarkComparison = () => {
   const [plotlyLoaded, setPlotlyLoaded] = useState(false);
   const plotRef = useRef<HTMLDivElement>(null);
 
-  // Fetch CAS list for autocomplete
-  const { data: casListResponse } = useQuery({
-    queryKey: ["cas-list"],
-    queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CAS_LIST}`);
-      if (!response.ok) throw new Error("Failed to fetch CAS list");
-      const data = await response.json();
-      
-      // Retourner les données brutes pour permettre l'accès aux deux formats
-      return data;
-    },
-  });
-
-  // Convertir les données en format array pour faciliter l'utilisation
-  const casList: CasItem[] = casListResponse?.cas_with_names
-    ? Array.isArray(casListResponse.cas_with_names)
-      ? casListResponse.cas_with_names.map((item: any) => ({
-          cas_number: item.cas_number || item,
-          chemical_name: item.chemical_name,
-        }))
-      : Object.entries(casListResponse.cas_with_names as Record<string, string>).map(
-          ([cas_number, chemical_name]) => ({ cas_number, chemical_name })
-        )
-    : [];
+  // Utiliser le hook partagé pour la liste des CAS
+  const { casList, getChemicalName } = useCasList();
 
   // Fetch comparison plot when we have 2-3 substances selected
   const { data: plotData, isLoading, error } = useQuery({
@@ -357,45 +322,12 @@ export const BenchmarkComparison = () => {
     setSelectedCas(selectedCas.filter((c) => c !== cas));
   };
 
-  const getChemicalName = (cas: string): string => {
+  // Utiliser la fonction du hook pour obtenir le nom chimique
+  const getChemicalNameForDisplay = (cas: string): string => {
     if (!cas) return '';
-    
     const normalizedCas = normalizeCas(cas);
-    
-    // Recherche exacte avec normalisation
-    let item = casList.find((item) => compareCas(item.cas_number, normalizedCas));
-    
-    if (item?.chemical_name) {
-      return item.chemical_name;
-    }
-    
-    // Si pas trouvé dans la liste locale, essayer de récupérer depuis la réponse brute
-    // (pour les cas où la liste n'est pas encore chargée ou le format diffère)
-    if (casListResponse && typeof casListResponse === 'object' && 'cas_with_names' in casListResponse) {
-      const casWithNames = casListResponse.cas_with_names;
-      
-      if (Array.isArray(casWithNames)) {
-        // Format array
-        const found = casWithNames.find((item: any) => 
-          compareCas(item.cas_number || item, normalizedCas)
-        );
-        if (found?.chemical_name) {
-          return found.chemical_name;
-        }
-      } else if (typeof casWithNames === 'object') {
-        // Format object {cas_number: chemical_name}
-        const casWithNamesObj = casWithNames as Record<string, string>;
-        const matchingKey = Object.keys(casWithNamesObj).find(key => 
-          compareCas(key, normalizedCas)
-        );
-        if (matchingKey && casWithNamesObj[matchingKey]) {
-          return casWithNamesObj[matchingKey];
-        }
-      }
-    }
-    
-    // Fallback : retourner le CAS normalisé si aucun nom n'est trouvé
-    return normalizedCas;
+    const name = getChemicalName(normalizedCas);
+    return name || normalizedCas;
   };
 
   return (
@@ -422,7 +354,7 @@ export const BenchmarkComparison = () => {
                   key={cas}
                   className="flex items-center gap-2 px-3 py-2 bg-primary/10 text-primary rounded-md text-sm"
                 >
-                  <span>{getChemicalName(cas)}</span>
+                  <span>{getChemicalNameForDisplay(cas)}</span>
                   <button
                     onClick={() => handleRemoveCas(cas)}
                     className="hover:bg-primary/20 rounded-full p-0.5"

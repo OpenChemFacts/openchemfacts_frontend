@@ -1,13 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { FlaskConical, Info, AlertCircle } from "lucide-react";
-import { API_ENDPOINTS } from "@/lib/config";
-import { apiFetch, ApiError } from "@/lib/api";
+import { FlaskConical, Info } from "lucide-react";
+import { useCasList } from "@/hooks/useCasList";
+import { normalizeCas } from "@/lib/cas-utils";
 
 interface ChemicalInfoProps {
   cas: string;
+  chemical_name?: string;
 }
 
 interface ChemicalData {
@@ -19,163 +19,24 @@ interface ChemicalData {
   [key: string]: any;
 }
 
-// Fonction pour normaliser un numéro CAS (enlever les espaces, normaliser les tirets)
-const normalizeCas = (cas: string): string => {
-  return cas.trim().replace(/\s+/g, '').replace(/[–—]/g, '-');
-};
-
-// Fonction pour comparer deux numéros CAS (insensible à la casse et aux espaces)
-const compareCas = (cas1: string, cas2: string): boolean => {
-  return normalizeCas(cas1).toLowerCase() === normalizeCas(cas2).toLowerCase();
-};
-
-export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
+export const ChemicalInfo = ({ cas, chemical_name: propChemicalName }: ChemicalInfoProps) => {
   const normalizedCas = cas ? normalizeCas(cas) : '';
-  // Get chemical name from CAS list
-  const { data: casListData } = useQuery({
-    queryKey: ["cas-list"],
-    queryFn: async () => {
-      const response = await apiFetch<{
-        count: number;
-        cas_numbers: string[];
-        cas_with_names: Record<string, string> | Array<{ cas_number: string; chemical_name?: string }>;
-      }>(API_ENDPOINTS.CAS_LIST);
-      return response;
-    },
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
-  });
+  
+  // Utiliser le hook partagé pour obtenir la liste des CAS (fallback si pas de nom en props)
+  const { getChemicalName, isLoading } = useCasList();
+  
+  // Priorité 1: Utiliser le nom passé en props (depuis SearchBar)
+  // Priorité 2: Chercher dans la liste des CAS via le hook
+  const chemicalName = propChemicalName || (normalizedCas ? getChemicalName(normalizedCas) : undefined);
 
-  // Find chemical info from the list
-  // Backend returns cas_with_names as object {cas_number: chemical_name}
-  // Toutes les substances disponibles via l'API ont un chemical_name
-  let chemicalName: string | undefined;
-  let casExists = false;
-  
-  // Recherche du nom chimique avec plusieurs stratégies
-  if (casListData?.cas_with_names && normalizedCas) {
-    if (Array.isArray(casListData.cas_with_names)) {
-      // Legacy array format - utiliser compareCas pour la recherche
-      const item = casListData.cas_with_names.find((item) => {
-        const itemCas = item.cas_number || item;
-        return compareCas(itemCas, normalizedCas);
-      });
-      chemicalName = item?.chemical_name;
-      casExists = !!item;
-      console.log(`[ChemicalInfo] Array format - CAS: ${normalizedCas}, Found: ${casExists}, Name: ${chemicalName}`);
-    } else {
-      // Object format {cas_number: chemical_name}
-      const casWithNamesObj = casListData.cas_with_names as Record<string, string>;
-      
-      // Stratégie 1: Recherche exacte normalisée
-      let matchingKey = Object.keys(casWithNamesObj).find(key => compareCas(key, normalizedCas));
-      
-      // Stratégie 2: Si pas trouvé, essayer avec le CAS original (non normalisé) au cas où
-      if (!matchingKey && cas) {
-        matchingKey = Object.keys(casWithNamesObj).find(key => compareCas(key, cas));
-      }
-      
-      // Stratégie 3: Recherche partielle (pour gérer les variations de format)
-      if (!matchingKey) {
-        matchingKey = Object.keys(casWithNamesObj).find(key => {
-          const normalizedKey = normalizeCas(key);
-          const searchKey = normalizedCas.toLowerCase();
-          return normalizedKey.toLowerCase().includes(searchKey) || searchKey.includes(normalizedKey.toLowerCase());
-        });
-      }
-      
-      // Stratégie 4: Recherche sur les premiers caractères (pour gérer les formats avec/sans tirets)
-      if (!matchingKey) {
-        const casPrefix = normalizedCas.replace(/-/g, '').substring(0, 5);
-        matchingKey = Object.keys(casWithNamesObj).find(key => {
-          const keyPrefix = normalizeCas(key).replace(/-/g, '').substring(0, 5);
-          return keyPrefix === casPrefix && keyPrefix.length > 0;
-        });
-      }
-      
-      casExists = !!matchingKey;
-      chemicalName = matchingKey ? casWithNamesObj[matchingKey] : undefined;
-      
-      console.log(`[ChemicalInfo] Object format - CAS: ${normalizedCas}, Found: ${casExists}, Name: ${chemicalName || 'NOT FOUND'}`);
-      
-      if (!casExists || !chemicalName) {
-        console.warn(`[ChemicalInfo] CAS not found or no name - CAS: "${normalizedCas}" (original: "${cas}")`);
-        console.log(`[ChemicalInfo] Total keys in cas_with_names:`, Object.keys(casWithNamesObj).length);
-        console.log(`[ChemicalInfo] Sample keys (first 10):`, Object.keys(casWithNamesObj).slice(0, 10));
-        
-        // Afficher les clés similaires pour le débogage
-        const allKeys = Object.keys(casWithNamesObj);
-        const similarKeys = allKeys.filter(key => {
-          const keyNorm = normalizeCas(key);
-          const casNorm = normalizedCas;
-          // Comparer les premiers caractères (sans tirets)
-          const keyPrefix = keyNorm.replace(/-/g, '').substring(0, 7);
-          const casPrefix = casNorm.replace(/-/g, '').substring(0, 7);
-          return keyPrefix === casPrefix && keyPrefix.length > 0;
-        });
-        
-        if (similarKeys.length > 0) {
-          console.log(`[ChemicalInfo] Found ${similarKeys.length} similar keys:`, similarKeys.slice(0, 5));
-          // Prendre la première clé similaire comme fallback
-          if (similarKeys.length > 0 && !chemicalName) {
-            chemicalName = casWithNamesObj[similarKeys[0]];
-            console.log(`[ChemicalInfo] Using similar key as fallback: ${similarKeys[0]} -> ${chemicalName}`);
-          }
-        }
-      }
-    }
-  }
-  
-  // Fallback: check in cas_numbers list if not found in cas_with_names
-  if (!casExists && casListData?.cas_numbers && normalizedCas) {
-    const foundInCasNumbers = casListData.cas_numbers.some(casNum => compareCas(casNum, normalizedCas));
-    console.log(`[ChemicalInfo] Checking fallback cas_numbers - Found: ${foundInCasNumbers}`);
-    casExists = foundInCasNumbers;
-    
-    // Si le CAS existe mais qu'on n'a pas le nom, essayer de le trouver dans cas_with_names
-    if (foundInCasNumbers && !chemicalName && casListData.cas_with_names) {
-      if (Array.isArray(casListData.cas_with_names)) {
-        const exactCasInList = casListData.cas_numbers.find(casNum => compareCas(casNum, normalizedCas));
-        if (exactCasInList) {
-          const found = casListData.cas_with_names.find((item: any) => {
-            const itemCas = item.cas_number || item;
-            return compareCas(itemCas, exactCasInList);
-          });
-          if (found?.chemical_name) {
-            chemicalName = found.chemical_name;
-            console.log(`[ChemicalInfo] Found name via array fallback: ${chemicalName}`);
-          }
-        }
-      } else {
-        const casWithNamesObj = casListData.cas_with_names as Record<string, string>;
-        const exactCasInList = casListData.cas_numbers.find(casNum => compareCas(casNum, normalizedCas));
-        if (exactCasInList) {
-          const nameKey = Object.keys(casWithNamesObj).find(key => compareCas(key, exactCasInList));
-          if (nameKey && casWithNamesObj[nameKey]) {
-            chemicalName = casWithNamesObj[nameKey];
-            console.log(`[ChemicalInfo] Found name via object fallback: ${chemicalName}`);
-          }
-        }
-      }
-    }
-  }
-  
-  console.log(`[ChemicalInfo] Final result - CAS: ${normalizedCas}, casExists: ${casExists}, chemicalName: ${chemicalName || 'NOT FOUND'}`);
-
-  // For now, we'll use the data from CAS list
+  // For now, we'll use the data from props or CAS list
   // In the future, we could add stats via /api/by_column if needed
   const data: ChemicalData | undefined = normalizedCas
     ? {
-        cas_number: normalizedCas, // Utiliser le CAS normalisé
+        cas_number: normalizedCas,
         chemical_name: chemicalName,
       }
     : undefined;
-
-  const isLoading = !casListData;
-  // Ne pas afficher d'erreur si le CAS n'est pas trouvé dans la liste locale
-  // car la liste pourrait être incomplète ou le format pourrait différer
-  // Laisser l'API backend valider l'existence réelle du CAS via les endpoints de graphiques
-  // Si le CAS n'existe vraiment pas, les graphiques afficheront une erreur appropriée
-  const error = undefined; // Ne jamais afficher d'erreur ici, laisser les autres composants gérer
 
   if (isLoading) {
     return (
@@ -190,28 +51,6 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
     );
   }
 
-  if (error) {
-    const errorMessage = error instanceof ApiError 
-      ? error.message 
-      : "Erreur lors du chargement des informations";
-    const isNotFound = error instanceof ApiError && error.status === 404;
-    
-    return (
-      <Card className="shadow-card border-destructive">
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-2 text-destructive">
-            <AlertCircle className="h-5 w-5" />
-            <div>
-              <p className="font-semibold">
-                {isNotFound ? "Produit chimique non trouvé" : "Erreur"}
-              </p>
-              <p className="text-sm text-muted-foreground">{errorMessage}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card className="shadow-card">
@@ -247,8 +86,10 @@ export const ChemicalInfo = ({ cas }: ChemicalInfoProps) => {
         {data && (
           <div className="flex gap-3 pt-2">
             <Badge variant="secondary" className="text-base py-1 px-4">
-              <Info className="h-4 w-4 mr-2" />
-              CAS: {data.cas_number}
+              <span className="flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                CAS: {data.cas_number}
+              </span>
             </Badge>
             {chemicalName && (
               <Badge variant="outline" className="text-base py-1 px-4">

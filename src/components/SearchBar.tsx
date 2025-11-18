@@ -3,76 +3,25 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { API_ENDPOINTS } from "@/lib/config";
-import { apiFetch, ApiError } from "@/lib/api";
+import { useCasList, type CasItem } from "@/hooks/useCasList";
+import { normalizeCas, compareCas } from "@/lib/cas-utils";
 
-interface SearchBarProps {
-  onCasSelect: (cas: string) => void;
-}
-
-interface CasItem {
-  cas_number: string;
+export interface ChemicalMetadata {
+  cas: string;
   chemical_name?: string;
 }
 
-// Fonction pour normaliser un numéro CAS (enlever les espaces, normaliser les tirets)
-const normalizeCas = (cas: string): string => {
-  return cas.trim().replace(/\s+/g, '').replace(/[–—]/g, '-'); // Remplace les espaces et normalise les tirets
-};
-
-// Fonction pour comparer deux numéros CAS (insensible à la casse et aux espaces)
-const compareCas = (cas1: string, cas2: string): boolean => {
-  return normalizeCas(cas1).toLowerCase() === normalizeCas(cas2).toLowerCase();
-};
+interface SearchBarProps {
+  onCasSelect: (metadata: ChemicalMetadata) => void;
+}
 
 export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [errorShown, setErrorShown] = useState(false);
 
-  const { data: casListResponse, error } = useQuery({
-    queryKey: ["cas-list"],
-    queryFn: async () => {
-      const response = await apiFetch<{
-        count: number;
-        cas_numbers: string[];
-        cas_with_names: Record<string, string> | Array<{ cas_number: string; chemical_name?: string }>;
-      }>(API_ENDPOINTS.CAS_LIST);
-      
-      // Backend returns cas_with_names as an object {cas_number: chemical_name}
-      // Convert it to array format for frontend use
-      if (response?.cas_with_names) {
-        if (Array.isArray(response.cas_with_names)) {
-          // If it's already an array (legacy format), use it directly
-          return response.cas_with_names.map(item => ({
-            cas_number: item.cas_number,
-            chemical_name: item.chemical_name,
-          })) as CasItem[];
-        } else {
-          // Convert object format {cas: name} to array format
-          const casWithNames = response.cas_with_names as Record<string, string>;
-          return Object.entries(casWithNames).map(([cas_number, chemical_name]) => ({
-            cas_number,
-            chemical_name: chemical_name || undefined,
-          })) as CasItem[];
-        }
-      }
-      
-      // Fallback: if only cas_numbers is available
-      if (response?.cas_numbers && Array.isArray(response.cas_numbers)) {
-        return response.cas_numbers.map(cas => ({
-          cas_number: cas,
-        })) as CasItem[];
-      }
-      
-      return [];
-    },
-    retry: false, // Ne pas réessayer automatiquement pour éviter les notifications répétées
-  });
-
-  const casList: CasItem[] = casListResponse || [];
+  const { casList, error } = useCasList();
 
   // Log debug: vérifier combien de substances ont un chemical_name
   useEffect(() => {
@@ -89,10 +38,7 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
   // Afficher une notification si erreur de chargement de la liste (une seule fois)
   useEffect(() => {
     if (error && !errorShown) {
-      const errorMessage = error instanceof ApiError 
-        ? error.message 
-        : "Impossible de charger la liste des produits chimiques";
-      toast.error(errorMessage);
+      toast.error(error.message || "Impossible de charger la liste des produits chimiques");
       setErrorShown(true);
     }
     // Réinitialiser le flag si l'erreur disparaît (requête réussie)
@@ -131,7 +77,10 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
     // Try exact CAS match first (normalisé)
     const exactMatch = casList.find(item => compareCas(item.cas_number, normalizedSearch));
     if (exactMatch) {
-      onCasSelect(exactMatch.cas_number);
+      onCasSelect({
+        cas: exactMatch.cas_number,
+        chemical_name: exactMatch.chemical_name,
+      });
       setSearchTerm(exactMatch.cas_number);
       setShowSuggestions(false);
       return;
@@ -144,13 +93,19 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
     );
     
     if (matchedItem) {
-      onCasSelect(matchedItem.cas_number);
+      onCasSelect({
+        cas: matchedItem.cas_number,
+        chemical_name: matchedItem.chemical_name,
+      });
       setSearchTerm(matchedItem.cas_number);
       setShowSuggestions(false);
     } else {
       // Si on a des suggestions filtrées, prendre la première
       if (filteredCas.length > 0) {
-        onCasSelect(filteredCas[0].cas_number);
+        onCasSelect({
+          cas: filteredCas[0].cas_number,
+          chemical_name: filteredCas[0].chemical_name,
+        });
         setSearchTerm(filteredCas[0].cas_number);
         setShowSuggestions(false);
         toast.info(`Substance sélectionnée : ${filteredCas[0].cas_number}`);
@@ -158,7 +113,10 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
         // Accepter l'entrée normalisée et laisser l'API valider
         // Ne pas afficher d'erreur ici car la substance pourrait exister dans la base
         // même si elle n'est pas dans la liste locale (liste peut être incomplète)
-        onCasSelect(normalizedSearch);
+        onCasSelect({
+          cas: normalizedSearch,
+          chemical_name: undefined,
+        });
         setShowSuggestions(false);
       }
     }
@@ -205,7 +163,10 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
                 onClick={(e) => {
                   e.stopPropagation();
                   setSearchTerm(item.cas_number);
-                  onCasSelect(item.cas_number);
+                  onCasSelect({
+                    cas: item.cas_number,
+                    chemical_name: item.chemical_name,
+                  });
                   setShowSuggestions(false);
                 }}
               >

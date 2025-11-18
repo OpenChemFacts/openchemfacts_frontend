@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SearchBar } from "@/components/SearchBar";
+import { SearchBar, type ChemicalMetadata } from "@/components/SearchBar";
 import { ChemicalInfo } from "@/components/ChemicalInfo";
 import { PlotViewer } from "@/components/PlotViewer";
 import { StatsOverview } from "@/components/StatsOverview";
@@ -8,7 +8,9 @@ import { BenchmarkComparison } from "@/components/BenchmarkComparison";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
-  const [selectedCas, setSelectedCas] = useState<string>("50-00-0");
+  const [selectedChemical, setSelectedChemical] = useState<ChemicalMetadata>({
+    cas: "50-00-0",
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -24,12 +26,15 @@ const Index = () => {
           </p>
         </div>
 
-        <SearchBar onCasSelect={setSelectedCas} />
+        <SearchBar onCasSelect={setSelectedChemical} />
 
         <div className="mt-8 space-y-8">
-          {selectedCas && (
+          {selectedChemical?.cas && (
             <>
-              <ChemicalInfo cas={selectedCas} />
+              <ChemicalInfo 
+                cas={selectedChemical.cas} 
+                chemical_name={selectedChemical.chemical_name}
+              />
               
               <Tabs defaultValue="ssd" className="w-full">
                 <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
@@ -38,17 +43,17 @@ const Index = () => {
                 </TabsList>
                 
                 <TabsContent value="ssd" className="mt-6">
-                  <PlotViewer cas={selectedCas} type="ssd" />
+                  <PlotViewer cas={selectedChemical.cas} type="ssd" />
                 </TabsContent>
                 
                 <TabsContent value="ec10" className="mt-6">
-                  <PlotViewer cas={selectedCas} type="ec10eq" />
+                  <PlotViewer cas={selectedChemical.cas} type="ec10eq" />
                 </TabsContent>
               </Tabs>
             </>
           )}
 
-          {!selectedCas && <StatsOverview />}
+          {!selectedChemical?.cas && <StatsOverview />}
           
           <BenchmarkComparison />
         </div>
