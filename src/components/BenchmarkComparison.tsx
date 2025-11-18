@@ -3,241 +3,79 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart3, AlertCircle, Plus, X } from "lucide-react";
-import { API_BASE_URL, API_ENDPOINTS } from "@/lib/config";
-import { ApiError } from "@/lib/api";
+import { BarChart3, Plus, X } from "lucide-react";
+import { API_ENDPOINTS } from "@/lib/config";
+import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
-import { useCasList, type CasItem } from "@/hooks/useCasList";
+import { useCasList } from "@/hooks/useCasList";
+import { usePlotly } from "@/hooks/usePlotly";
 import { normalizeCas, compareCas } from "@/lib/cas-utils";
-
-interface PlotlyData {
-  data: any[];
-  layout: any;
-  config?: any;
-}
-
-// Fonction pour décoder les données numpy/base64 en tableaux JavaScript
-const decodeNumpyData = (data: any): any[] => {
-  if (!data || typeof data !== 'object') return data;
-  
-  // Si c'est un objet avec dtype et bdata, décoder
-  if (data.dtype && data.bdata) {
-    try {
-      const binaryString = atob(data.bdata);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      const float64Array = new Float64Array(bytes.buffer);
-      return Array.from(float64Array);
-    } catch (e) {
-      console.error('[BenchmarkComparison] Error decoding numpy data:', e);
-      return [];
-    }
-  }
-  
-  return data;
-};
-
-// Fonction récursive pour traiter toutes les traces
-const processPlotlyTraces = (traces: any[]): any[] => {
-  if (!Array.isArray(traces)) return traces;
-  
-  return traces.map(trace => {
-    const processedTrace = { ...trace };
-    
-    // Décoder x et y si nécessaire
-    if (trace.x) {
-      processedTrace.x = decodeNumpyData(trace.x);
-    }
-    if (trace.y) {
-      processedTrace.y = decodeNumpyData(trace.y);
-    }
-    
-    return processedTrace;
-  });
-};
+import {
+  type PlotlyData,
+  processPlotlyTraces,
+  createEnhancedLayout,
+  createPlotlyConfig,
+} from "@/lib/plotly-utils";
+import { ErrorDisplay } from "@/components/ui/error-display";
 
 export const BenchmarkComparison = () => {
   const [selectedCas, setSelectedCas] = useState<string[]>([]);
   const [searchTerms, setSearchTerms] = useState<string[]>(["", "", ""]);
   const [showSuggestions, setShowSuggestions] = useState<number | null>(null);
-  const [plotlyLoaded, setPlotlyLoaded] = useState(false);
   const plotRef = useRef<HTMLDivElement>(null);
 
-  // Utiliser le hook partagé pour la liste des CAS
+  // Utiliser les hooks partagés
   const { casList, getChemicalName } = useCasList();
+  const { plotlyLoaded, Plotly } = usePlotly();
 
   // Fetch comparison plot when we have 2-3 substances selected
   const { data: plotData, isLoading, error } = useQuery({
     queryKey: ["ssd-comparison", selectedCas],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.SSD_COMPARISON}`, {
+      return apiFetch<PlotlyData>(API_ENDPOINTS.SSD_COMPARISON, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cas_list: selectedCas }),
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new ApiError(
-          errorText || "Failed to fetch comparison plot",
-          response.status,
-          response.statusText
-        );
-      }
-
-      return response.json() as Promise<PlotlyData>;
     },
     enabled: selectedCas.length >= 2 && selectedCas.length <= 3,
   });
 
   // Render Plotly chart
   useEffect(() => {
-    if (plotData && plotRef.current && plotlyLoaded && (window as any).Plotly) {
+    if (plotData && plotRef.current && plotlyLoaded && Plotly) {
       try {
-        console.log('[BenchmarkComparison] Raw data received:', plotData);
-        
         // Décoder les traces avant de les afficher
         const processedTraces = processPlotlyTraces(plotData.data || []);
-        
-        console.log('[BenchmarkComparison] Processed traces:', processedTraces.length);
-        console.log('[BenchmarkComparison] Traces details:', processedTraces.map((trace: any) => ({
-          name: trace.name,
-          type: trace.type,
-          mode: trace.mode,
-          x_length: Array.isArray(trace.x) ? trace.x.length : 'not decoded',
-          y_length: Array.isArray(trace.y) ? trace.y.length : 'not decoded',
-        })));
         
         // Vérifier que les données Plotly sont valides
         if (processedTraces.length > 0 && plotData.layout) {
           // Nettoyer le graphique existant avant d'en créer un nouveau
-          if (plotRef.current) {
-            (window as any).Plotly.purge(plotRef.current);
-          }
+          Plotly.purge(plotRef.current);
 
-          // Préserver 100% des éléments du layout original
-          // Fusionner intelligemment les améliorations sans écraser les éléments existants
-          
-          // D'abord, préserver tous les axes secondaires (xaxis2, yaxis2, xaxis3, etc.)
-          // avec amélioration de automargin seulement si absent
-          const secondaryAxes = Object.keys(plotData.layout)
-            .filter(key => /^(x|y)axis\d+$/.test(key))
-            .reduce((acc, key) => {
-              acc[key] = {
-                ...plotData.layout[key], // Préserver toutes les valeurs originales
-                automargin: plotData.layout[key]?.automargin ?? true, // Ajouter automargin seulement si absent
-              };
-              return acc;
-            }, {} as any);
-          
-          // Construire le layout amélioré en préservant TOUS les éléments originaux
-          const enhancedLayout = {
-            // D'abord, préserver TOUS les éléments du layout original
-            ...plotData.layout,
-            
-            // Rendre le graphique entièrement responsive
-            autosize: true,
-            showlegend: plotData.layout.showlegend !== false,
-            
-            // Retirer les dimensions fixes pour permettre l'adaptation automatique
-            width: undefined,
-            height: undefined,
-            
-            // Marges optimisées pour la visibilité complète
-            margin: {
-              l: 60,
-              r: 100,
-              t: 120,
-              b: 80,
-              pad: 10,
-              ...plotData.layout.margin,
-            },
-            
-            // Font : fusionner avec la font existante
-            font: {
-              size: 12,
-              ...plotData.layout.font, // Les valeurs originales écrasent les défauts
-            },
-            
-            // Axe X principal : préserver toutes les propriétés et améliorer seulement automargin
-            xaxis: {
-              ...plotData.layout.xaxis, // D'abord préserver toutes les valeurs originales
-              automargin: plotData.layout.xaxis?.automargin ?? true, // Ajouter automargin seulement si absent
-            },
-            
-            // Axe Y principal : préserver toutes les propriétés et améliorer seulement automargin
-            yaxis: {
-              ...plotData.layout.yaxis, // D'abord préserver toutes les valeurs originales
-              automargin: plotData.layout.yaxis?.automargin ?? true, // Ajouter automargin seulement si absent
-            },
-            
-            // Ajouter les axes secondaires préservés
-            ...secondaryAxes,
-            
-            // Légende : fusionner avec la configuration existante
-            legend: plotData.layout.legend ? {
-              ...plotData.layout.legend, // D'abord préserver toutes les valeurs originales
-              // Ensuite, ajouter des valeurs par défaut seulement si elles n'existent pas
-              orientation: plotData.layout.legend.orientation ?? 'v',
-              x: plotData.layout.legend.x ?? 1.02,
-              y: plotData.layout.legend.y ?? 1,
-              xanchor: plotData.layout.legend.xanchor ?? 'left',
-              yanchor: plotData.layout.legend.yanchor ?? 'top',
-              visible: plotData.layout.legend.visible !== false,
-              font: {
-                size: 11, // Valeur par défaut
-                ...plotData.layout.legend.font, // Les valeurs originales écrasent les défauts
-              },
-            } : {
-              // Valeurs par défaut si aucune légende n'est définie
-              orientation: 'v',
-              x: 1.02,
-              y: 1,
-              xanchor: 'left',
-              yanchor: 'top',
-              visible: true,
-              font: { size: 11 },
-            },
-          };
-
-          // Configuration : fusionner avec la config originale
-          const plotConfig = {
-            responsive: true,
-            displayModeBar: true,
-            displaylogo: false,
-            modeBarButtonsToRemove: ["lasso2d", "select2d"],
-            ...(plotData.config || {}), // Préserver toutes les options de config originales
-          };
-
-          console.log('[BenchmarkComparison] Rendering plot with:', {
-            tracesCount: processedTraces.length,
-            layoutKeys: Object.keys(enhancedLayout),
-            hasAnnotations: !!enhancedLayout.annotations,
-            hasShapes: !!enhancedLayout.shapes,
-            hasImages: !!enhancedLayout.images,
-            secondaryAxes: Object.keys(secondaryAxes),
+          // Créer le layout amélioré
+          const enhancedLayout = createEnhancedLayout({
+            type: 'comparison',
+            originalLayout: plotData.layout,
           });
 
-          (window as any).Plotly.newPlot(
-            plotRef.current,
-            processedTraces, // Utiliser les traces décodées
-            enhancedLayout,
-            plotConfig
-          );
+          // Créer la configuration
+          const plotConfig = createPlotlyConfig(plotData.config);
 
+          // Rendre le graphique
+          Plotly.newPlot(plotRef.current, processedTraces, enhancedLayout, plotConfig);
+
+          // Gérer le redimensionnement
           const resizeHandler = () => {
-            if (plotRef.current && (window as any).Plotly) {
-              (window as any).Plotly.Plots.resize(plotRef.current);
+            if (plotRef.current && Plotly) {
+              Plotly.Plots.resize(plotRef.current);
             }
           };
           window.addEventListener("resize", resizeHandler);
+          
           return () => {
             window.removeEventListener("resize", resizeHandler);
-            // Nettoyer le graphique lors du démontage
-            if (plotRef.current && (window as any).Plotly) {
-              (window as any).Plotly.purge(plotRef.current);
+            if (plotRef.current && Plotly) {
+              Plotly.purge(plotRef.current);
             }
           };
         } else {
@@ -247,42 +85,7 @@ export const BenchmarkComparison = () => {
         console.error("[BenchmarkComparison] Error rendering Plotly chart:", plotError);
       }
     }
-  }, [plotData, plotlyLoaded]);
-
-  // Load Plotly dynamically
-  useEffect(() => {
-    if ((window as any).Plotly) {
-      setPlotlyLoaded(true);
-      return;
-    }
-
-    // Vérifier si le script est déjà en cours de chargement
-    const existingScript = document.querySelector('script[src="https://cdn.plot.ly/plotly-2.27.0.min.js"]');
-    if (existingScript) {
-      existingScript.addEventListener('load', () => {
-        setPlotlyLoaded(true);
-      });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://cdn.plot.ly/plotly-2.27.0.min.js";
-    script.async = true;
-    script.onload = () => {
-      setPlotlyLoaded(true);
-    };
-    script.onerror = () => {
-      console.error("[BenchmarkComparison] Failed to load Plotly script");
-    };
-    document.body.appendChild(script);
-
-    return () => {
-      // Nettoyer le graphique lors du démontage
-      if (plotRef.current && (window as any).Plotly) {
-        (window as any).Plotly.purge(plotRef.current);
-      }
-    };
-  }, []);
+  }, [plotData, plotlyLoaded, Plotly]);
 
   const getFilteredSuggestions = (index: number) => {
     const term = searchTerms[index];
@@ -435,18 +238,10 @@ export const BenchmarkComparison = () => {
             <BarChart3 className="h-12 w-12 mb-4 opacity-50" />
             <p>Sélectionnez au moins 2 substances pour voir la comparaison</p>
           </div>
-        ) : isLoading ? (
+        ) : isLoading || !plotlyLoaded ? (
           <Skeleton className="h-96 w-full" />
         ) : error ? (
-          <div className="flex items-center gap-2 text-destructive p-4 border border-destructive rounded-md">
-            <AlertCircle className="h-5 w-5" />
-            <div>
-              <p className="font-semibold">Erreur</p>
-              <p className="text-sm">
-                {error instanceof ApiError ? error.message : "Erreur lors du chargement"}
-              </p>
-            </div>
-          </div>
+          <ErrorDisplay error={error} />
         ) : (
           <div ref={plotRef} className="w-full min-h-[600px] lg:min-h-[700px]" />
         )}

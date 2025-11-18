@@ -1,9 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Database, FlaskConical, Users, TestTubes, AlertCircle } from "lucide-react";
+import { Database, FlaskConical, Users, TestTubes } from "lucide-react";
 import { API_ENDPOINTS } from "@/lib/config";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
+import { useCasList } from "@/hooks/useCasList";
+import { ErrorDisplay } from "@/components/ui/error-display";
 
 interface SummaryData {
   rows: number;
@@ -31,19 +33,8 @@ export const StatsOverview = () => {
     queryFn: () => apiFetch<SummaryData>(API_ENDPOINTS.SUMMARY),
   });
 
-  // Get unique chemicals count from CAS list
-  const { data: casListData, error: casListError } = useQuery({
-    queryKey: ["cas-list"],
-    queryFn: async () => {
-      const response = await apiFetch<{
-        count: number;
-        cas_numbers: string[];
-        cas_with_names: Record<string, string> | Array<{ cas_number: string; chemical_name?: string }>;
-      }>(API_ENDPOINTS.CAS_LIST);
-      return response;
-    },
-    staleTime: 10 * 60 * 1000,
-  });
+  // Use the shared hook for CAS list
+  const { casListResponse, error: casListError } = useCasList();
 
   // Get unique species count
   const { data: speciesData } = useQuery({
@@ -63,13 +54,13 @@ export const StatsOverview = () => {
   const data: Stats | undefined = summaryData
     ? {
         total_records: summaryData.rows,
-        unique_chemicals: casListData?.count || 0,
+        unique_chemicals: casListResponse?.count || 0,
         unique_species: speciesData?.count || 0,
         unique_taxa: taxaData?.count || 0,
       }
     : undefined;
 
-  const isLoading = !summaryData || !casListData;
+  const isLoading = !summaryData || !casListResponse;
   const error = summaryError || casListError;
 
   const statsCards = [
@@ -94,23 +85,12 @@ export const StatsOverview = () => {
   ];
 
   if (error) {
-    const errorMessage = error instanceof ApiError 
-      ? error.message 
-      : "Erreur lors du chargement des statistiques";
-    
     return (
       <div className="mt-12">
-        <Card className="shadow-card border-destructive">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="h-5 w-5" />
-              <div>
-                <p className="font-semibold">Erreur</p>
-                <p className="text-sm text-muted-foreground">{errorMessage}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <ErrorDisplay 
+          error={error} 
+          title="Erreur lors du chargement des statistiques"
+        />
       </div>
     );
   }
