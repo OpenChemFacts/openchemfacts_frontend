@@ -4,7 +4,7 @@ export const Logo = () => {
   return (
     <Link to="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
       <div className="p-2.5 rounded-md bg-primary flex items-center justify-center">
-        <span className="text-2xl">🫧</span>
+        <span className="text-2xl">🧪</span>
       </div>
       <div>
         <h1 className="text-xl font-semibold text-foreground tracking-tight">OpenChemFacts</h1>
