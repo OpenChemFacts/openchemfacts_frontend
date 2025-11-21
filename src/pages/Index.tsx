@@ -43,7 +43,10 @@ const Index = () => {
               ) : (
                 <span className="font-semibold">{casCount?.toLocaleString() || "—"}</span>
               )}{" "}
-              out of {Number(10278).toLocaleString()} initially (
+              out of {Number(10278).toLocaleString()} initially
+            </p>
+            <p className="text-sm font-medium text-foreground mt-1">
+              (
               <a 
                 href="https://openchemfacts.gitbook.io/openchemfacts-docs/" 
                 target="_blank" 
