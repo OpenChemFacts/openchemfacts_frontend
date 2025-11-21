@@ -49,7 +49,7 @@ export const API_ENDPOINTS = {
   SUMMARY: '/api/summary',
   BY_COLUMN: (column: string) => `/api/by_column?column=${encodeURIComponent(column)}`,
   CAS_LIST: '/api/cas/list',
-  CAS_INFO: (cas: string) => `/cas/${cas}`,
+  CAS_INFO: (cas: string) => `/api/cas/${cas}`,
   SSD_PLOT: (cas: string) => `/api/plot/ssd/${cas}`,
   EC10EQ_PLOT: (cas: string) => `/api/plot/ec10eq/${cas}`,
   /**

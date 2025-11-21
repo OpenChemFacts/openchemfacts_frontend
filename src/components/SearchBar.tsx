@@ -122,10 +122,17 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
 
   // Helper function to select a CAS item
   const selectCasItem = useCallback((item: CasItem) => {
-    onCasSelect({
+    const metadata = {
       cas: item.cas_number,
       chemical_name: item.chemical_name,
-    });
+    };
+    
+    // Debug log in development
+    if (import.meta.env.DEV) {
+      console.log(`[SearchBar] CAS selected:`, metadata);
+    }
+    
+    onCasSelect(metadata);
     setSearchTerm(item.cas_number);
     setShowSuggestions(false);
   }, [onCasSelect]);

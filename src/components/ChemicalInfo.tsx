@@ -28,16 +28,36 @@ export const ChemicalInfo = ({ cas, chemical_name: propChemicalName }: ChemicalI
   const normalizedCas = cas ? normalizeCas(cas) : '';
   const [chemicalName, setChemicalName] = useState<string | undefined>(propChemicalName);
   
+  // Debug log: component received props
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log(`[ChemicalInfo] Component received props:`, { cas, normalizedCas, propChemicalName });
+    }
+  }, [cas, normalizedCas, propChemicalName]);
+  
   // Use the shared hook to get the CAS list
   const { isLoading: isCasListLoading, casList } = useCasList();
   
-  // Fetch detailed CAS information from /cas/{cas} endpoint
+  // Fetch detailed CAS information from /api/cas/{cas} endpoint
   const { data: casInfo, isLoading: isCasInfoLoading, error: casInfoError } = useQuery({
     queryKey: ["cas-info", normalizedCas],
-    queryFn: () => apiFetch<CasInfoResponse>(API_ENDPOINTS.CAS_INFO(normalizedCas)),
+    queryFn: async () => {
+      const endpoint = API_ENDPOINTS.CAS_INFO(normalizedCas);
+      if (import.meta.env.DEV) {
+        console.log(`[ChemicalInfo] Fetching CAS info from: ${endpoint}`);
+      }
+      return apiFetch<CasInfoResponse>(endpoint);
+    },
     enabled: !!normalizedCas,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
+
+  // Debug: log API response in development
+  useEffect(() => {
+    if (import.meta.env.DEV && casInfo) {
+      console.log(`[ChemicalInfo] API response for CAS ${normalizedCas}:`, casInfo);
+    }
+  }, [casInfo, normalizedCas]);
   
   // Systematically retrieve the chemical name if not already provided in props
   useEffect(() => {
@@ -119,41 +139,45 @@ export const ChemicalInfo = ({ cas, chemical_name: propChemicalName }: ChemicalI
           </div>
         </div>
 
-        {/* Display additional information from /cas/{cas} endpoint */}
-        {casInfo && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
-            {casInfo.n_species !== undefined && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Number of Species</p>
-                <p className="font-semibold text-lg">
-                  <Badge variant="secondary" className="text-base px-3 py-1">
-                    {casInfo.n_species}
-                  </Badge>
-                </p>
+        {/* Display additional information from /api/cas/{cas} endpoint */}
+        {casInfo && (() => {
+          // Get all additional fields from the API response (excluding already displayed fields)
+          const excludedFields = ['cas_number', 'chemical_name'];
+          const additionalFields = Object.keys(casInfo).filter(
+            key => !excludedFields.includes(key) && casInfo[key] !== undefined && casInfo[key] !== null
+          );
+          
+          // Known fields to display with labels
+          const knownFields: Record<string, string> = {
+            n_species: 'Number of Species',
+            n_trophic_level: 'Trophic Levels',
+            n_results: 'Total Results',
+          };
+
+          // If there are additional fields to display
+          if (additionalFields.length > 0) {
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+                {additionalFields.map((field) => {
+                  const label = knownFields[field] || field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                  const value = casInfo[field];
+                  
+                  return (
+                    <div key={field}>
+                      <p className="text-sm text-muted-foreground mb-1">{label}</p>
+                      <p className="font-semibold text-lg">
+                        <Badge variant="secondary" className="text-base px-3 py-1">
+                          {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                        </Badge>
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
-            )}
-            {casInfo.n_trophic_level !== undefined && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Trophic Levels</p>
-                <p className="font-semibold text-lg">
-                  <Badge variant="secondary" className="text-base px-3 py-1">
-                    {casInfo.n_trophic_level}
-                  </Badge>
-                </p>
-              </div>
-            )}
-            {casInfo.n_results !== undefined && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Results</p>
-                <p className="font-semibold text-lg">
-                  <Badge variant="secondary" className="text-base px-3 py-1">
-                    {casInfo.n_results}
-                  </Badge>
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+            );
+          }
+          return null;
+        })()}
       </CardContent>
     </Card>
   );
