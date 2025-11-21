@@ -73,17 +73,24 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
           // Clean existing chart before creating a new one
           Plotly.purge(plotRef.current);
 
-          // Decode traces
+          // Process traces: decode numpy data while preserving backend optimizations
           let processedTraces = processPlotlyTraces(data.data || []);
           
-          // For EC10eq, enhance traces to avoid overlap
+          // For EC10eq, enhance traces to avoid overlap (UI improvement)
           if (type === 'ec10eq') {
             processedTraces = enhanceEC10eqTraces(processedTraces);
           }
           
-          // Validate traces
+          // Validate traces - backend should send valid data, but we check for safety
           const validTraces = validatePlotlyTraces(processedTraces);
+          // Use validated traces if available, otherwise fall back to processed traces
+          // This ensures we always try to render something if backend data is valid
           const tracesToRender = validTraces.length > 0 ? validTraces : processedTraces;
+          
+          if (tracesToRender.length === 0) {
+            console.error("[PlotViewer] No valid traces to render after processing");
+            return;
+          }
 
           // Create enhanced layout with theme support
           const enhancedLayout = createEnhancedLayout({

@@ -13,6 +13,7 @@ import { normalizeCas, compareCas } from "@/lib/cas-utils";
 import {
   type PlotlyData,
   processPlotlyTraces,
+  validatePlotlyTraces,
   createEnhancedLayout,
   createPlotlyConfig,
   isDarkMode,
@@ -91,26 +92,31 @@ export const BenchmarkComparison = () => {
   useEffect(() => {
     if (plotData && plotRef.current && plotlyLoaded && Plotly) {
       try {
-        // Decode traces before displaying them
+        // Process traces: decode numpy data while preserving backend optimizations
         const processedTraces = processPlotlyTraces(plotData.data || []);
         
+        // Validate traces - backend should send valid data, but we check for safety
+        const validTraces = validatePlotlyTraces(processedTraces);
+        const tracesToRender = validTraces.length > 0 ? validTraces : processedTraces;
+        
         // Verify that Plotly data is valid
-        if (processedTraces.length > 0 && plotData.layout) {
+        if (tracesToRender.length > 0 && plotData.layout) {
           // Clean existing chart before creating a new one
           Plotly.purge(plotRef.current);
 
           // Create enhanced layout with theme support
+          // This respects backend optimizations while applying frontend UI improvements
           const enhancedLayout = createEnhancedLayout({
             type: 'comparison',
             originalLayout: plotData.layout,
             isDarkMode: darkMode,
           });
 
-          // Create configuration
+          // Create configuration - respects backend config while ensuring UI best practices
           const plotConfig = createPlotlyConfig(plotData.config);
 
-          // Render the chart
-          Plotly.newPlot(plotRef.current, processedTraces, enhancedLayout, plotConfig);
+          // Render the chart with processed traces
+          Plotly.newPlot(plotRef.current, tracesToRender, enhancedLayout, plotConfig);
 
           // Handle resizing with debounce
           const resizeHandler = () => {
@@ -149,7 +155,10 @@ export const BenchmarkComparison = () => {
       try {
         if (plotData.data && plotData.layout) {
           const processedTraces = processPlotlyTraces(plotData.data || []);
-          if (processedTraces.length > 0) {
+          const validTraces = validatePlotlyTraces(processedTraces);
+          const tracesToRender = validTraces.length > 0 ? validTraces : processedTraces;
+          
+          if (tracesToRender.length > 0) {
             const enhancedLayout = createEnhancedLayout({
               type: 'comparison',
               originalLayout: plotData.layout,
@@ -159,7 +168,7 @@ export const BenchmarkComparison = () => {
             
             Plotly.redraw(plotRef.current).catch(() => {
               // If redraw fails, do a full replot
-              Plotly.newPlot(plotRef.current, processedTraces, enhancedLayout, plotConfig);
+              Plotly.newPlot(plotRef.current, tracesToRender, enhancedLayout, plotConfig);
             });
           }
         }

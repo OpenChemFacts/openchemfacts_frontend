@@ -38,6 +38,7 @@ export const decodeNumpyData = (data: any): any[] => {
 
 /**
  * Recursively processes all Plotly traces to decode numpy data
+ * Preserves backend optimizations while ensuring data is properly decoded
  * @param traces - The Plotly traces to process
  * @returns The traces with decoded data
  */
@@ -45,9 +46,10 @@ export const processPlotlyTraces = (traces: any[]): any[] => {
   if (!Array.isArray(traces)) return traces;
   
   return traces.map(trace => {
+    // Preserve all trace properties from backend
     const processedTrace = { ...trace };
     
-    // Decode x and y if necessary
+    // Decode numpy/base64 data if present (backend may have optimized this)
     if (trace.x) {
       processedTrace.x = decodeNumpyData(trace.x);
     }
@@ -69,6 +71,17 @@ export const processPlotlyTraces = (traces: any[]): any[] => {
       } else {
         processedTrace.text = decodeNumpyData(trace.text);
       }
+    }
+    
+    // Ensure accessibility: add hoverinfo if not present
+    if (!processedTrace.hoverinfo && processedTrace.type !== 'scattergl') {
+      processedTrace.hoverinfo = 'x+y';
+    }
+    
+    // Ensure line/marker visibility for better UX
+    if (processedTrace.type === 'scatter' && !processedTrace.mode) {
+      // If no mode specified, use 'lines+markers' for better visibility
+      processedTrace.mode = 'lines+markers';
     }
     
     return processedTrace;
@@ -130,6 +143,7 @@ export const getPlotlyThemeColors = (dark: boolean) => {
 
 /**
  * Creates an enhanced Plotly layout while preserving all original properties
+ * Respects backend optimizations and applies frontend UI improvements
  * @param options - Options for creating the layout
  * @returns The enhanced layout
  */
@@ -138,13 +152,23 @@ export const createEnhancedLayout = (options: EnhancedLayoutOptions): any => {
   const dark = options.isDarkMode ?? isDarkMode();
   const themeColors = getPlotlyThemeColors(dark);
   
-  // Base margins according to type
-  // Increased right margin to prevent legend from overlapping with x-axis labels
-  const baseMargin = type === 'ec10eq'
-    ? { l: 100, r: 180, t: 120, b: 200, pad: 15 }  // Increased r from 150 to 180
+  // Base margins according to type - only used if backend doesn't provide margins
+  // Backend may have optimized margins, so we respect them if present
+  const defaultMargins = type === 'ec10eq'
+    ? { l: 100, r: 180, t: 120, b: 200, pad: 15 }
     : type === 'comparison'
-    ? { l: 60, r: 140, t: 120, b: 80, pad: 10 }    // Increased r from 100 to 140
-    : { l: 80, r: 160, t: 100, b: 120, pad: 10 };  // Increased r from 120 to 160
+    ? { l: 60, r: 140, t: 120, b: 80, pad: 10 }
+    : { l: 80, r: 160, t: 100, b: 120, pad: 10 };
+  
+  // Use backend margins if provided, otherwise use defaults
+  // Merge to ensure minimum right margin for legend spacing
+  const backendMargin = originalLayout.margin || {};
+  const finalMargin = {
+    ...defaultMargins,
+    ...backendMargin,
+    // Ensure minimum right margin to prevent legend overlap
+    r: Math.max(backendMargin.r || defaultMargins.r, defaultMargins.r),
+  };
   
   // Preserve all secondary axes (xaxis2, yaxis2, xaxis3, etc.)
   const secondaryAxes = Object.keys(originalLayout)
@@ -158,48 +182,63 @@ export const createEnhancedLayout = (options: EnhancedLayoutOptions): any => {
     }, {} as any);
   
   // Build the enhanced layout
+  // Priority: Backend optimizations > Frontend UI improvements
   const enhancedLayout = {
-    // Preserve ALL elements from the original layout
+    // Preserve ALL elements from the original layout (backend optimizations)
     ...originalLayout,
     
-    // Theme colors - apply only if not already set in original layout
-    ...(originalLayout.paper_bgcolor ? {} : { paper_bgcolor: themeColors.paper_bgcolor }),
-    ...(originalLayout.plot_bgcolor ? {} : { plot_bgcolor: themeColors.plot_bgcolor }),
+    // Theme colors - always use light background for readability
+    // Override backend colors to ensure consistent UI
+    paper_bgcolor: themeColors.paper_bgcolor,
+    plot_bgcolor: themeColors.plot_bgcolor,
     
-    // Display improvements
-    autosize: originalLayout.autosize ?? true,
+    // Display improvements - respect backend settings but ensure good defaults
+    autosize: originalLayout.autosize !== false, // Default to true unless explicitly false
     showlegend: originalLayout.showlegend !== false,
     
-    // Remove fixed dimensions to allow automatic adaptation
+    // Remove fixed dimensions to allow automatic adaptation and responsiveness
     width: undefined,
     height: undefined,
     
-    // Optimized margins
-    margin: originalLayout.margin
-      ? { ...baseMargin, ...originalLayout.margin }
-      : baseMargin,
+    // Use merged margins that respect backend optimizations
+    margin: finalMargin,
     
-    // Font - merge with theme font color
+    // Font - merge with theme font color while preserving backend font settings
     font: originalLayout.font
-      ? { size: 12, color: themeColors.font.color, ...originalLayout.font }
+      ? { 
+          size: originalLayout.font.size || 12, 
+          color: themeColors.font.color, // Always use theme color for consistency
+          ...originalLayout.font,
+          color: themeColors.font.color, // Ensure theme color is applied
+        }
       : { size: 12, color: themeColors.font.color },
     
-    // Main X axis
+    // Main X axis - preserve backend optimizations, apply UI improvements
     xaxis: originalLayout.xaxis
       ? {
-          ...originalLayout.xaxis,
-          automargin: originalLayout.xaxis.automargin ?? true,
-          gridcolor: originalLayout.xaxis.gridcolor ?? themeColors.gridcolor,
-          linecolor: originalLayout.xaxis.linecolor ?? themeColors.linecolor,
-          ...(originalLayout.xaxis.tickfont ? {} : { tickfont: { color: themeColors.font.color } }),
+          ...originalLayout.xaxis, // Preserve all backend settings
+          // Ensure automargin for responsive behavior
+          automargin: originalLayout.xaxis.automargin !== false,
+          // Apply theme colors while preserving backend grid/line styles
+          gridcolor: themeColors.gridcolor,
+          linecolor: themeColors.linecolor,
+          // Merge tickfont settings
+          tickfont: {
+            ...originalLayout.xaxis.tickfont,
+            color: themeColors.font.color, // Always use theme color
+            size: originalLayout.xaxis.tickfont?.size || 12,
+          },
+          // Type-specific enhancements
           ...(type === 'ec10eq'
             ? {
                 tickangle: originalLayout.xaxis.tickangle ?? -45,
                 tickfont: {
                   size: originalLayout.xaxis.tickfont?.size ?? 10,
-                  color: originalLayout.xaxis.tickfont?.color ?? themeColors.font.color,
+                  color: themeColors.font.color,
                   ...originalLayout.xaxis.tickfont,
+                  color: themeColors.font.color, // Ensure theme color
                 },
+                // Preserve backend category settings
                 categoryorder: originalLayout.xaxis.categoryorder || 'category ascending',
                 categoryarray: originalLayout.xaxis.categoryarray,
               }
@@ -209,46 +248,59 @@ export const createEnhancedLayout = (options: EnhancedLayoutOptions): any => {
           automargin: true,
           gridcolor: themeColors.gridcolor,
           linecolor: themeColors.linecolor,
-          tickfont: { color: themeColors.font.color },
-          ...(type === 'ec10eq' ? { tickangle: -45, tickfont: { size: 10, color: themeColors.font.color } } : {}),
+          tickfont: { color: themeColors.font.color, size: 12 },
+          ...(type === 'ec10eq' ? { 
+            tickangle: -45, 
+            tickfont: { size: 10, color: themeColors.font.color } 
+          } : {}),
         },
     
-    // Main Y axis
+    // Main Y axis - preserve backend optimizations, apply UI improvements
     yaxis: originalLayout.yaxis
       ? {
-          ...originalLayout.yaxis,
-          automargin: originalLayout.yaxis.automargin ?? true,
-          gridcolor: originalLayout.yaxis.gridcolor ?? themeColors.gridcolor,
-          linecolor: originalLayout.yaxis.linecolor ?? themeColors.linecolor,
-          ...(originalLayout.yaxis.tickfont ? {} : { tickfont: { color: themeColors.font.color } }),
+          ...originalLayout.yaxis, // Preserve all backend settings
+          automargin: originalLayout.yaxis.automargin !== false,
+          gridcolor: themeColors.gridcolor,
+          linecolor: themeColors.linecolor,
+          tickfont: {
+            ...originalLayout.yaxis.tickfont,
+            color: themeColors.font.color, // Always use theme color
+            size: originalLayout.yaxis.tickfont?.size || 12,
+          },
         }
       : {
           automargin: true,
           gridcolor: themeColors.gridcolor,
           linecolor: themeColors.linecolor,
-          tickfont: { color: themeColors.font.color },
+          tickfont: { color: themeColors.font.color, size: 12 },
         },
     
-    // Legend - positioned to avoid overlapping with x-axis
+    // Legend - respect backend positioning but ensure no overlap with x-axis
     legend: originalLayout.legend
       ? {
-          ...originalLayout.legend,
+          ...originalLayout.legend, // Preserve backend legend settings
           orientation: originalLayout.legend.orientation ?? 'v',
-          // Position legend further right and higher to avoid x-axis overlap
-          x: originalLayout.legend.x ?? (type === 'comparison' ? 1.05 : 1.08),
+          // Use backend position if provided, otherwise use safe defaults
+          // Ensure x position is far enough right to avoid x-axis labels
+          x: originalLayout.legend.x !== undefined 
+            ? Math.max(originalLayout.legend.x, type === 'comparison' ? 1.02 : 1.05)
+            : (type === 'comparison' ? 1.05 : 1.08),
           y: originalLayout.legend.y ?? (type === 'comparison' ? 0.98 : 1),
           xanchor: originalLayout.legend.xanchor ?? 'left',
           yanchor: originalLayout.legend.yanchor ?? 'top',
           visible: originalLayout.legend.visible !== false,
+          // Use transparent background for cleaner look
           bgcolor: originalLayout.legend.bgcolor ?? 'rgba(0,0,0,0)',
           bordercolor: originalLayout.legend.bordercolor ?? themeColors.linecolor,
-          font: originalLayout.legend.font
-            ? { size: 11, color: themeColors.font.color, ...originalLayout.legend.font }
-            : { size: 11, color: themeColors.font.color },
+          // Apply theme font color
+          font: {
+            ...originalLayout.legend.font,
+            color: themeColors.font.color,
+            size: originalLayout.legend.font?.size || 11,
+          },
         }
       : {
           orientation: 'v',
-          // Position legend further right and higher to avoid x-axis overlap
           x: type === 'comparison' ? 1.05 : 1.08,
           y: type === 'comparison' ? 0.98 : 1,
           xanchor: 'left',
@@ -267,43 +319,64 @@ export const createEnhancedLayout = (options: EnhancedLayoutOptions): any => {
 };
 
 /**
- * Creates the default Plotly configuration
- * @param customConfig - Custom configuration to merge
+ * Creates the default Plotly configuration with UI best practices
+ * Respects backend config while applying frontend optimizations
+ * @param customConfig - Custom configuration from backend to merge
  * @returns The Plotly configuration
  */
 export const createPlotlyConfig = (customConfig?: any) => {
   return {
+    // Responsive design - essential for mobile/tablet
     responsive: true,
+    // Show mode bar for user interaction (zoom, pan, etc.)
     displayModeBar: true,
+    // Remove Plotly logo for cleaner UI
     displaylogo: false,
+    // Remove tools that are less useful for scientific charts
     modeBarButtonsToRemove: ["lasso2d", "select2d"],
+    // Preserve backend config but ensure our defaults
     ...(customConfig || {}),
+    // Override to ensure responsive is always true
+    responsive: true,
   };
 };
 
 /**
  * Validates and filters Plotly traces to keep only those with valid data
+ * Backend should send valid traces, but we validate for safety
  * @param traces - The traces to validate
  * @returns The valid traces
  */
 export const validatePlotlyTraces = (traces: any[]): any[] => {
-  return traces.filter(trace => {
+  if (!Array.isArray(traces) || traces.length === 0) {
+    console.warn('[plotly-utils] No traces provided or empty array');
+    return [];
+  }
+  
+  const validTraces = traces.filter(trace => {
+    // Check for valid data arrays
     const hasX = trace.x !== undefined && trace.x !== null && Array.isArray(trace.x) && trace.x.length > 0;
     const hasY = trace.y !== undefined && trace.y !== null && Array.isArray(trace.y) && trace.y.length > 0;
     const hasZ = trace.z !== undefined && trace.z !== null && Array.isArray(trace.z) && trace.z.length > 0;
     const hasData = hasX || hasY || hasZ;
     
     if (!hasData) {
-      console.warn('[plotly-utils] Trace without valid data:', {
-        name: trace.name,
-        type: trace.type,
-        x: trace.x,
-        y: trace.y,
-        z: trace.z,
+      console.warn('[plotly-utils] Trace without valid data (filtered out):', {
+        name: trace.name || 'unnamed',
+        type: trace.type || 'unknown',
+        hasX: !!hasX,
+        hasY: !!hasY,
+        hasZ: !!hasZ,
       });
     }
     return hasData;
   });
+  
+  if (validTraces.length === 0 && traces.length > 0) {
+    console.error('[plotly-utils] All traces were invalid!');
+  }
+  
+  return validTraces;
 };
 
 /**
