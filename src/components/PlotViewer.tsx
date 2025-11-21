@@ -228,10 +228,10 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-2 sm:p-4">
         <div 
           ref={plotRef} 
-          className={`w-full ${type === 'ec10eq' ? 'h-[500px] sm:h-[600px] md:h-[700px]' : 'h-[400px] sm:h-[500px] md:h-[600px]'}`}
+          className={`w-full ${type === 'ec10eq' ? 'h-[600px] sm:h-[700px] md:h-[800px] lg:h-[900px]' : 'h-[500px] sm:h-[600px] md:h-[700px] lg:h-[800px]'}`}
         />
       </CardContent>
     </Card>
