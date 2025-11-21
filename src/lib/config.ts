@@ -43,22 +43,63 @@ console.log(`[API Config] Base URL: ${API_BASE_URL}`);
 console.log(`[API Config] Environment: ${import.meta.env.MODE}`);
 console.log(`[API Config] VITE_API_BASE_URL: ${import.meta.env.VITE_API_BASE_URL || 'not set'}`);
 
+/**
+ * API Endpoints Configuration
+ * 
+ * Based on the official API documentation: https://api.openchemfacts.com/
+ * 
+ * Available endpoints from the API root:
+ * - /health - Health check
+ * - /docs - API documentation (Swagger UI)
+ * - /redoc - API documentation (ReDoc)
+ * - /api/summary - Summary statistics
+ * - /api/cas/list - List of all CAS numbers
+ * - /api/search?query={query}&limit={limit} - Search endpoint
+ * - /api/plot/ssd/{identifier} - SSD plot for a CAS/identifier
+ * - /api/plot/ec10eq/{identifier} - EC10 equivalent plot for a CAS/identifier
+ * - /api/plot/ssd/comparison - Compare multiple SSDs (POST)
+ */
 export const API_ENDPOINTS = {
   ROOT: '/',
   HEALTH: '/health',
+  DOCS: '/docs',
+  REDOC: '/redoc',
   SUMMARY: '/api/summary',
   BY_COLUMN: (column: string) => `/api/by_column?column=${encodeURIComponent(column)}`,
   CAS_LIST: '/api/cas/list',
+  /**
+   * Get detailed information for a specific CAS number.
+   * Note: This endpoint may not be listed in the API root but is used by the frontend.
+   * If it doesn't exist, consider using /api/search with the CAS as query.
+   */
   CAS_INFO: (cas: string) => `/api/cas/${cas}`,
-  SSD_PLOT: (cas: string) => `/api/plot/ssd/${cas}`,
-  EC10EQ_PLOT: (cas: string) => `/api/plot/ec10eq/${cas}`,
+  /**
+   * Search endpoint with query and optional limit
+   * @param query - Search query string
+   * @param limit - Maximum number of results (optional)
+   */
+  SEARCH: (query: string, limit?: number) => {
+    const params = new URLSearchParams({ query });
+    if (limit) params.append('limit', limit.toString());
+    return `/api/search?${params.toString()}`;
+  },
+  /**
+   * SSD plot endpoint for a CAS number or identifier
+   * @param identifier - CAS number or other identifier
+   */
+  SSD_PLOT: (identifier: string) => `/api/plot/ssd/${identifier}`,
+  /**
+   * EC10 equivalent plot endpoint for a CAS number or identifier
+   * @param identifier - CAS number or other identifier
+   */
+  EC10EQ_PLOT: (identifier: string) => `/api/plot/ec10eq/${identifier}`,
   /**
    * Endpoint for comparing multiple SSDs (max 3 substances).
    * 
    * Note: This endpoint requires a list of CAS numbers (maximum 3).
    * Frontend implementation is now available.
    * 
-   * Format expected by the backend (plot_ssd_comparison function):
+   * Format expected by the backend:
    * - Method: POST
    * - JSON Body: { "cas_list": ["123-45-6", "789-01-2", "345-67-8"] }
    * - Maximum 3 CAS numbers in the list
