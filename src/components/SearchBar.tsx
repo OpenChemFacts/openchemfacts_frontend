@@ -19,11 +19,7 @@ interface CasItem {
   chemical_name?: string;
 }
 
-interface CasListResponse {
-  count: number;
-  cas_numbers: string[];
-  cas_with_names: Record<string, string> | Array<{ cas_number: string; chemical_name?: string }>;
-}
+type CasListResponse = Array<{ cas_number: string; name?: string }>;
 
 interface SearchBarProps {
   onCasSelect: (metadata: ChemicalMetadata) => void;
@@ -53,23 +49,10 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
   // Convert API response to array format for easier use
   const casList: CasItem[] = useMemo(() => {
     if (!casListResponse) return [];
-    
-    if (casListResponse.cas_with_names) {
-      if (Array.isArray(casListResponse.cas_with_names)) {
-        return casListResponse.cas_with_names.map((item: any) => ({
-          cas_number: item.cas_number || item,
-          chemical_name: item.chemical_name,
-        }));
-      } else {
-        return Object.entries(casListResponse.cas_with_names as Record<string, string>).map(
-          ([cas_number, chemical_name]) => ({ cas_number, chemical_name })
-        );
-      }
-    } else if (casListResponse.cas_numbers) {
-      return casListResponse.cas_numbers.map((cas) => ({ cas_number: cas }));
-    }
-    
-    return [];
+    return casListResponse.map((item) => ({
+      cas_number: item.cas_number,
+      chemical_name: item.name,
+    }));
   }, [casListResponse]);
 
   // Debounce search term for better performance
