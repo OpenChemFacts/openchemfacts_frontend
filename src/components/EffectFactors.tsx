@@ -14,16 +14,10 @@ interface EffectFactorsProps {
 
 /**
  * Structure attendue pour un effect factor
- * Adaptable selon la structure réelle de l'API
+ * Chaque dictionnaire contient les valeurs EF pour différentes sources
  */
 interface EffectFactor {
-  id?: string | number;
-  name?: string;
-  value?: number | string;
-  unit?: string;
-  description?: string;
-  type?: string;
-  [key: string]: any; // Permet d'accepter d'autres champs
+  [key: string]: any; // Dictionnaire avec les valeurs EF par source
 }
 
 /**
@@ -37,6 +31,11 @@ interface CasInfoResponse {
   effectFactors?: EffectFactor[];
   [key: string]: any;
 }
+
+/**
+ * Clés à exclure lors de l'extraction des sources (métadonnées, pas des sources)
+ */
+const EXCLUDED_KEYS = ['id', 'cas_number', 'name', 'description', 'type', 'unit'];
 
 export const EffectFactors = ({ cas }: EffectFactorsProps) => {
   const normalizedCas = cas ? normalizeCas(cas) : '';
@@ -60,9 +59,33 @@ export const EffectFactors = ({ cas }: EffectFactorsProps) => {
   // Support both snake_case and camelCase
   const effectFactors: EffectFactor[] = casInfo?.effect_factors || casInfo?.effectFactors || [];
 
+  // Extract sources and EF values from each effect factor
+  // Each effect factor is a dictionary with source names as keys and EF values as values
+  const sourcesData = effectFactors.map((factor, index) => {
+    const sources: Array<{ source: string; ef: number | string | null }> = [];
+    
+    // Extract all keys that are not excluded (these are the sources)
+    Object.keys(factor).forEach((key) => {
+      if (!EXCLUDED_KEYS.includes(key.toLowerCase())) {
+        const value = factor[key];
+        // Include all sources, even if value is null/undefined (will show "not available")
+        sources.push({
+          source: key,
+          ef: value !== null && value !== undefined ? value : null,
+        });
+      }
+    });
+    
+    return {
+      id: factor.id || index,
+      sources: sources.slice(0, 3), // Maximum 3 sources per effect factor
+    };
+  });
+
   // Debug log in development
   if (import.meta.env.DEV && casInfo) {
     console.log(`[EffectFactors] Effect factors for CAS ${normalizedCas}:`, effectFactors);
+    console.log(`[EffectFactors] Extracted sources data:`, sourcesData);
   }
 
   // Don't render if no CAS number
@@ -111,7 +134,7 @@ export const EffectFactors = ({ cas }: EffectFactorsProps) => {
   }
 
   // No effect factors available
-  if (effectFactors.length === 0) {
+  if (effectFactors.length === 0 || sourcesData.length === 0) {
     return (
       <Card className="shadow-card">
         <CardHeader>
@@ -130,7 +153,7 @@ export const EffectFactors = ({ cas }: EffectFactorsProps) => {
   }
 
   // Display effect factors (maximum 3)
-  const displayFactors = effectFactors.slice(0, 3);
+  const displayFactors = sourcesData.slice(0, 3);
 
   return (
     <Card className="shadow-card">
@@ -145,69 +168,54 @@ export const EffectFactors = ({ cas }: EffectFactorsProps) => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {displayFactors.map((factor, index) => (
-            <div
-              key={factor.id || index}
-              className="rounded-lg border bg-muted/50 p-4 hover:bg-muted/70 transition-colors"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 space-y-2">
-                  {factor.name && (
-                    <h4 className="font-semibold text-lg">{factor.name}</h4>
-                  )}
-                  {factor.description && (
-                    <p className="text-sm text-muted-foreground">{factor.description}</p>
-                  )}
-                  <div className="flex flex-wrap gap-2 items-center">
-                    {factor.value !== undefined && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-semibold text-primary text-lg">
-                          {typeof factor.value === 'number' 
-                            ? factor.value.toLocaleString() 
-                            : factor.value}
+          {displayFactors.map((factorData) => {
+            // Display up to 3 sources from the factor
+            const sources = factorData.sources.slice(0, 3);
+
+            return (
+              <div
+                key={factorData.id}
+                className="rounded-lg border bg-muted/50 p-4 hover:bg-muted/70 transition-colors"
+              >
+                <div className="space-y-3">
+                  {sources.length > 0 ? (
+                    sources.map((source, sourceIndex) => (
+                      <div
+                        key={sourceIndex}
+                        className="flex items-center justify-between py-2 border-b last:border-b-0"
+                      >
+                        <span className="font-medium text-sm capitalize">
+                          {source.source.replace(/_/g, ' ')}
                         </span>
-                        {factor.unit && (
-                          <Badge variant="outline" className="text-xs">
-                            {factor.unit}
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {source.ef !== null && source.ef !== undefined ? (
+                            <>
+                              <span className="font-mono font-semibold text-primary text-base">
+                                {typeof source.ef === 'number' 
+                                  ? source.ef.toLocaleString() 
+                                  : String(source.ef)}
+                              </span>
+                              <Badge variant="outline" className="text-xs">
+                                EF
+                              </Badge>
+                            </>
+                          ) : (
+                            <span className="text-sm text-muted-foreground italic">
+                              not available
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    )}
-                    {factor.type && (
-                      <Badge variant="secondary" className="text-xs">
-                        {factor.type}
-                      </Badge>
-                    )}
-                  </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-muted-foreground text-center py-2">
+                      No sources available
+                    </div>
+                  )}
                 </div>
               </div>
-              {/* Display any additional fields */}
-              {Object.keys(factor).some(key => 
-                !['id', 'name', 'value', 'unit', 'description', 'type'].includes(key) &&
-                factor[key] !== undefined &&
-                factor[key] !== null
-              ) && (
-                <div className="mt-3 pt-3 border-t space-y-1">
-                  {Object.entries(factor).map(([key, value]) => {
-                    if (['id', 'name', 'value', 'unit', 'description', 'type'].includes(key) ||
-                        value === undefined || value === null) {
-                      return null;
-                    }
-                    return (
-                      <div key={key} className="flex justify-between text-xs">
-                        <span className="text-muted-foreground capitalize">
-                          {key.replace(/_/g, ' ')}:
-                        </span>
-                        <span className="font-medium">
-                          {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>
