@@ -276,29 +276,49 @@ export const createEnhancedLayout = (options: EnhancedLayoutOptions): any => {
         },
     
     // Legend - respect backend positioning but ensure no overlap with x-axis
+    // Filter out invalid properties (like 'xshift' which is not a valid Plotly legend property)
     legend: originalLayout.legend
-      ? {
-          ...originalLayout.legend, // Preserve backend legend settings
-          orientation: originalLayout.legend.orientation ?? 'v',
-          // Use backend position if provided, otherwise use safe defaults
-          // Ensure x position is far enough right to avoid x-axis labels
-          x: originalLayout.legend.x !== undefined 
-            ? Math.max(originalLayout.legend.x, type === 'comparison' ? 1.02 : 1.05)
-            : (type === 'comparison' ? 1.05 : 1.08),
-          y: originalLayout.legend.y ?? (type === 'comparison' ? 0.98 : 1),
-          xanchor: originalLayout.legend.xanchor ?? 'left',
-          yanchor: originalLayout.legend.yanchor ?? 'top',
-          visible: originalLayout.legend.visible !== false,
-          // Use transparent background for cleaner look
-          bgcolor: originalLayout.legend.bgcolor ?? 'rgba(0,0,0,0)',
-          bordercolor: originalLayout.legend.bordercolor ?? themeColors.linecolor,
-          // Apply theme font color
-          font: {
-            ...originalLayout.legend.font,
-            color: themeColors.font.color,
-            size: originalLayout.legend.font?.size || 11,
-          },
-        }
+      ? (() => {
+          // Valid Plotly legend properties (based on Plotly documentation)
+          const validLegendProps = [
+            'bgcolor', 'bordercolor', 'borderwidth', 'entrywidth', 'entrywidthmode',
+            'font', 'groupclick', 'grouptitlefont', 'indentation', 'itemclick',
+            'itemdoubleclick', 'itemsizing', 'itemwidth', 'maxheight', 'orientation',
+            'title', 'tracegroupgap', 'traceorder', 'uirevision', 'valign',
+            'visible', 'x', 'xanchor', 'xref', 'y', 'yanchor', 'yref'
+          ];
+          
+          // Filter out invalid properties from backend legend
+          const filteredLegend = Object.keys(originalLayout.legend)
+            .filter(key => validLegendProps.includes(key))
+            .reduce((acc, key) => {
+              acc[key] = originalLayout.legend[key];
+              return acc;
+            }, {} as any);
+          
+          return {
+            ...filteredLegend, // Use filtered backend legend settings
+            orientation: originalLayout.legend.orientation ?? 'v',
+            // Use backend position if provided, otherwise use safe defaults
+            // Ensure x position is far enough right to avoid x-axis labels
+            x: originalLayout.legend.x !== undefined 
+              ? Math.max(originalLayout.legend.x, type === 'comparison' ? 1.02 : 1.05)
+              : (type === 'comparison' ? 1.05 : 1.08),
+            y: originalLayout.legend.y ?? (type === 'comparison' ? 0.98 : 1),
+            xanchor: originalLayout.legend.xanchor ?? 'left',
+            yanchor: originalLayout.legend.yanchor ?? 'top',
+            visible: originalLayout.legend.visible !== false,
+            // Use transparent background for cleaner look
+            bgcolor: originalLayout.legend.bgcolor ?? 'rgba(0,0,0,0)',
+            bordercolor: originalLayout.legend.bordercolor ?? themeColors.linecolor,
+            // Apply theme font color
+            font: {
+              ...originalLayout.legend.font,
+              color: themeColors.font.color,
+              size: originalLayout.legend.font?.size || 11,
+            },
+          };
+        })()
       : {
           orientation: 'v',
           x: type === 'comparison' ? 1.05 : 1.08,
