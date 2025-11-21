@@ -64,38 +64,22 @@ This project is built with:
 
 ### Configuration du backend
 
-L'application peut se connecter à deux types de backends :
+L'application utilise une seule API de production :
 
-1. **Backend Production** : `https://api.openchemfacts.com`
-2. **Backend local (Développement)** : `http://localhost:8000`
+**Backend Production** : `https://api.openchemfacts.com/api`
 
-### Configuration via variables d'environnement
-
-Créez un fichier `.env` à la racine du projet avec :
-
-```env
-# Pour utiliser le backend de production
-VITE_API_BASE_URL=https://api.openchemfacts.com
-
-# OU pour utiliser le backend local
-# VITE_API_BASE_URL=http://localhost:8000
-```
-
-**Note** : Si `VITE_API_BASE_URL` n'est pas défini dans `.env` :
-- En mode développement (`npm run dev`) : utilise automatiquement `http://localhost:8000`
-- En production : utilise automatiquement `https://api.openchemfacts.com`
+Toutes les requêtes API sont dirigées vers ce endpoint unique. Aucune configuration supplémentaire n'est nécessaire.
 
 ### Dépannage
 
 Si vous rencontrez l'erreur "Impossible de se connecter au serveur" :
 
-1. **Vérifiez que le backend est démarré** (si vous utilisez le backend local)
-2. **Vérifiez l'URL dans `.env`** : elle doit correspondre à votre backend
-3. **Vérifiez la configuration CORS** : le backend doit autoriser les requêtes depuis votre origine frontend
-4. **Consultez la console du navigateur** : en mode développement, des logs détaillés sont affichés
+1. **Vérifiez votre connexion internet** : assurez-vous d'avoir accès à `https://api.openchemfacts.com/api`
+2. **Vérifiez la configuration CORS** : le backend doit autoriser les requêtes depuis votre origine frontend
+3. **Consultez la console du navigateur** : en mode développement, des logs détaillés sont affichés
 
 Les logs de débogage en développement affichent :
-- L'URL de base de l'API utilisée
+- L'URL de base de l'API utilisée (`https://api.openchemfacts.com/api`)
 - Chaque requête effectuée
 - Les erreurs détaillées en cas d'échec
 
