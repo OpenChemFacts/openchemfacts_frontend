@@ -214,7 +214,7 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-96 w-full" />
+          <Skeleton className="h-[80vh] min-h-[600px] w-full" />
         </CardContent>
       </Card>
     );
@@ -231,7 +231,7 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
       <CardContent className="p-2 sm:p-4">
         <div 
           ref={plotRef} 
-          className="w-full min-h-[70vh] h-[70vh]"
+          className="w-full h-[80vh] min-h-[600px]"
         />
       </CardContent>
     </Card>

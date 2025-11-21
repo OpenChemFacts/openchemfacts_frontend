@@ -333,11 +333,11 @@ export const BenchmarkComparison = () => {
             <p>Select at least 2 substances to see the comparison</p>
           </div>
         ) : isLoading || !plotlyLoaded ? (
-          <Skeleton className="h-96 w-full" />
+          <Skeleton className="h-[80vh] min-h-[600px] w-full" />
         ) : error ? (
           <ErrorDisplay error={error} />
         ) : (
-          <div ref={plotRef} className="w-full min-h-[70vh] h-[70vh]" />
+          <div ref={plotRef} className="w-full h-[80vh] min-h-[600px]" />
         )}
       </CardContent>
     </Card>

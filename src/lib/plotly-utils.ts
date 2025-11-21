@@ -154,11 +154,10 @@ export const createEnhancedLayout = (options: EnhancedLayoutOptions): any => {
   
   // Base margins according to type - only used if backend doesn't provide margins
   // Backend may have optimized margins, so we respect them if present
+  // Uniform margins for ssd and comparison types for consistency
   const defaultMargins = type === 'ec10eq'
     ? { l: 100, r: 180, t: 120, b: 200, pad: 15 }
-    : type === 'comparison'
-    ? { l: 60, r: 140, t: 120, b: 80, pad: 10 }
-    : { l: 80, r: 160, t: 100, b: 120, pad: 10 };
+    : { l: 80, r: 160, t: 100, b: 120, pad: 10 }; // Same margins for 'ssd' and 'comparison'
   
   // Use backend margins if provided, otherwise use defaults
   // Merge to ensure minimum right margin for legend spacing
@@ -304,10 +303,11 @@ export const createEnhancedLayout = (options: EnhancedLayoutOptions): any => {
           orientation: cleanOriginalLayout.legend.orientation ?? 'v',
           // Use backend position if provided, otherwise use safe defaults
           // Ensure x position is far enough right to avoid x-axis labels
+          // Uniform legend position for ssd and comparison types
           x: cleanOriginalLayout.legend.x !== undefined 
-            ? Math.max(cleanOriginalLayout.legend.x, type === 'comparison' ? 1.02 : 1.05)
-            : (type === 'comparison' ? 1.05 : 1.08),
-          y: cleanOriginalLayout.legend.y ?? (type === 'comparison' ? 0.98 : 1),
+            ? Math.max(cleanOriginalLayout.legend.x, 1.05)
+            : 1.08,
+          y: cleanOriginalLayout.legend.y ?? 1,
           xanchor: cleanOriginalLayout.legend.xanchor ?? 'left',
           yanchor: cleanOriginalLayout.legend.yanchor ?? 'top',
           visible: cleanOriginalLayout.legend.visible !== false,
@@ -323,8 +323,8 @@ export const createEnhancedLayout = (options: EnhancedLayoutOptions): any => {
         }
       : {
           orientation: 'v',
-          x: type === 'comparison' ? 1.05 : 1.08,
-          y: type === 'comparison' ? 0.98 : 1,
+          x: 1.08,
+          y: 1,
           xanchor: 'left',
           yanchor: 'top',
           visible: true,
