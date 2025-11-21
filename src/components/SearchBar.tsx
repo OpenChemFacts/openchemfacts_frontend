@@ -23,14 +23,15 @@ type CasListResponse = Array<{ cas_number: string; name?: string }>;
 
 interface SearchBarProps {
   onCasSelect: (metadata: ChemicalMetadata) => void;
+  initialCas?: string;
 }
 
 const MAX_SUGGESTIONS = 10;
 const DEBOUNCE_DELAY = 200; // ms
 
-export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+export const SearchBar = ({ onCasSelect, initialCas }: SearchBarProps) => {
+  const [searchTerm, setSearchTerm] = useState(initialCas || "");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(initialCas || "");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const errorShownRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -160,6 +161,14 @@ export const SearchBar = ({ onCasSelect }: SearchBarProps) => {
       setShowSuggestions(false);
     }
   }, [searchTerm, casList, filteredCas, onCasSelect, selectCasItem]);
+
+  // Update search term when initialCas changes
+  useEffect(() => {
+    if (initialCas) {
+      setSearchTerm(initialCas);
+      setDebouncedSearchTerm(initialCas);
+    }
+  }, [initialCas]);
 
   // Handle click outside to close suggestions
   useEffect(() => {

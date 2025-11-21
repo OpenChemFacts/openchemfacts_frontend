@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SearchBar, type ChemicalMetadata } from "@/components/SearchBar";
 import { ChemicalInfo } from "@/components/ChemicalInfo";
 import { EffectFactors } from "@/components/EffectFactors";
@@ -10,13 +10,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCasList } from "@/hooks/useCasList";
 
+const DEFAULT_CAS = "50-00-0";
+
 const Index = () => {
   const [selectedChemical, setSelectedChemical] = useState<ChemicalMetadata>({
-    cas: "50-00-0",
+    cas: DEFAULT_CAS,
   });
 
-  // Get CAS count (Chemicals available)
-  const { count: casCount, isLoading: isCasListLoading } = useCasList();
+  // Get CAS count (Chemicals available) and list
+  const { count: casCount, isLoading: isCasListLoading, getChemicalName } = useCasList();
+
+  // Load chemical name for default CAS when list is available
+  useEffect(() => {
+    if (!isCasListLoading && selectedChemical.cas === DEFAULT_CAS && !selectedChemical.chemical_name) {
+      const chemicalName = getChemicalName(DEFAULT_CAS);
+      if (chemicalName) {
+        setSelectedChemical(prev => ({
+          ...prev,
+          chemical_name: chemicalName,
+        }));
+      }
+    }
+  }, [isCasListLoading, getChemicalName, selectedChemical.cas, selectedChemical.chemical_name]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,7 +75,7 @@ const Index = () => {
           </div>
         </div>
 
-        <SearchBar onCasSelect={setSelectedChemical} />
+        <SearchBar onCasSelect={setSelectedChemical} initialCas={selectedChemical.cas} />
 
         <div className="mt-8 space-y-8">
           {selectedChemical?.cas && (
