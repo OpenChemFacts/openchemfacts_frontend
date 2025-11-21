@@ -1,13 +1,13 @@
 /**
- * Scalingo API Configuration
+ * API Configuration
  * 
  * The URL can be set via the VITE_API_BASE_URL environment variable.
  * If not set, uses the default URL according to the environment:
  * - Local development (DEV=true): http://localhost:8000
- * - Production: https://openchemfacts-api.osc-fr1.scalingo.io
+ * - Production: https://api.openchemfacts.com
  * 
- * To use the Scalingo backend in development, set in .env:
- * VITE_API_BASE_URL=https://openchemfacts-api.osc-fr1.scalingo.io
+ * To use the production API in development, set in .env:
+ * VITE_API_BASE_URL=https://api.openchemfacts.com
  * 
  * To use the local backend, either:
  * - Don't set VITE_API_BASE_URL (will use localhost:8000 in dev)
@@ -20,20 +20,20 @@ const getApiBaseUrl = (): string => {
   }
 
   // Special case: in DEV but not on localhost (e.g., Lovable preview),
-  // use the Scalingo API to avoid connection errors to localhost
+  // use the production API to avoid connection errors to localhost
   const isHostedDev = import.meta.env.DEV
     && typeof window !== 'undefined'
     && window.location.hostname !== 'localhost'
     && window.location.hostname !== '127.0.0.1';
 
   if (isHostedDev) {
-    return 'https://openchemfacts-api.osc-fr1.scalingo.io';
+    return 'https://api.openchemfacts.com';
   }
 
   // Otherwise, use default values according to the environment
   return import.meta.env.DEV 
     ? 'http://localhost:8000' 
-    : 'https://openchemfacts-api.osc-fr1.scalingo.io';
+    : 'https://api.openchemfacts.com';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

@@ -66,7 +66,7 @@ This project is built with:
 
 L'application peut se connecter à deux types de backends :
 
-1. **Backend Scalingo (Production)** : `https://openchemfacts-api.osc-fr1.scalingo.io`
+1. **Backend Production** : `https://api.openchemfacts.com`
 2. **Backend local (Développement)** : `http://localhost:8000`
 
 ### Configuration via variables d'environnement
@@ -74,8 +74,8 @@ L'application peut se connecter à deux types de backends :
 Créez un fichier `.env` à la racine du projet avec :
 
 ```env
-# Pour utiliser le backend Scalingo
-VITE_API_BASE_URL=https://openchemfacts-api.osc-fr1.scalingo.io
+# Pour utiliser le backend de production
+VITE_API_BASE_URL=https://api.openchemfacts.com
 
 # OU pour utiliser le backend local
 # VITE_API_BASE_URL=http://localhost:8000
@@ -83,7 +83,7 @@ VITE_API_BASE_URL=https://openchemfacts-api.osc-fr1.scalingo.io
 
 **Note** : Si `VITE_API_BASE_URL` n'est pas défini dans `.env` :
 - En mode développement (`npm run dev`) : utilise automatiquement `http://localhost:8000`
-- En production : utilise automatiquement `https://openchemfacts-api.osc-fr1.scalingo.io`
+- En production : utilise automatiquement `https://api.openchemfacts.com`
 
 ### Dépannage
 
