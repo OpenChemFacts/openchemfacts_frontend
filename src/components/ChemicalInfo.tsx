@@ -39,6 +39,7 @@ export const ChemicalInfo = ({ cas, chemical_name: propChemicalName }: ChemicalI
   const { isLoading: isCasListLoading, casList } = useCasList();
   
   // Fetch detailed CAS information from /api/cas/{cas} endpoint
+  // Note: This endpoint may return 404 if not available, which is handled gracefully
   const { data: casInfo, isLoading: isCasInfoLoading, error: casInfoError } = useQuery({
     queryKey: ["cas-info", normalizedCas],
     queryFn: async () => {
@@ -50,6 +51,7 @@ export const ChemicalInfo = ({ cas, chemical_name: propChemicalName }: ChemicalI
     },
     enabled: !!normalizedCas,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: false, // Don't retry on 404
   });
 
   // Debug: log API response in development
@@ -89,7 +91,11 @@ export const ChemicalInfo = ({ cas, chemical_name: propChemicalName }: ChemicalI
     );
   }
 
-  if (casInfoError) {
+  // Don't display error if it's just a 404 (endpoint may not exist for all CAS)
+  // Only show error for other types of failures
+  const shouldShowError = casInfoError && !(casInfoError instanceof Error && casInfoError.message.includes('404'));
+  
+  if (shouldShowError) {
     return (
       <Card className="shadow-card">
         <CardHeader>
