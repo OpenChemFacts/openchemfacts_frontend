@@ -297,28 +297,28 @@ export const createEnhancedLayout = (options: EnhancedLayoutOptions): any => {
     
     // Legend - respect backend positioning but ensure no overlap with x-axis
     // Invalid properties have already been filtered in cleanOriginalLayout
-    legend: originalLayout.legend
+    legend: cleanOriginalLayout.legend
       ? {
           // Use the already-filtered legend from cleanOriginalLayout
           ...cleanOriginalLayout.legend,
-          orientation: originalLayout.legend.orientation ?? 'v',
+          orientation: cleanOriginalLayout.legend.orientation ?? 'v',
           // Use backend position if provided, otherwise use safe defaults
           // Ensure x position is far enough right to avoid x-axis labels
-          x: originalLayout.legend.x !== undefined 
-            ? Math.max(originalLayout.legend.x, type === 'comparison' ? 1.02 : 1.05)
+          x: cleanOriginalLayout.legend.x !== undefined 
+            ? Math.max(cleanOriginalLayout.legend.x, type === 'comparison' ? 1.02 : 1.05)
             : (type === 'comparison' ? 1.05 : 1.08),
-          y: originalLayout.legend.y ?? (type === 'comparison' ? 0.98 : 1),
-          xanchor: originalLayout.legend.xanchor ?? 'left',
-          yanchor: originalLayout.legend.yanchor ?? 'top',
-          visible: originalLayout.legend.visible !== false,
+          y: cleanOriginalLayout.legend.y ?? (type === 'comparison' ? 0.98 : 1),
+          xanchor: cleanOriginalLayout.legend.xanchor ?? 'left',
+          yanchor: cleanOriginalLayout.legend.yanchor ?? 'top',
+          visible: cleanOriginalLayout.legend.visible !== false,
           // Use transparent background for cleaner look
-          bgcolor: originalLayout.legend.bgcolor ?? 'rgba(0,0,0,0)',
-          bordercolor: originalLayout.legend.bordercolor ?? themeColors.linecolor,
+          bgcolor: cleanOriginalLayout.legend.bgcolor ?? 'rgba(0,0,0,0)',
+          bordercolor: cleanOriginalLayout.legend.bordercolor ?? themeColors.linecolor,
           // Apply theme font color
           font: {
-            ...originalLayout.legend.font,
+            ...cleanOriginalLayout.legend.font,
             color: themeColors.font.color,
-            size: originalLayout.legend.font?.size || 11,
+            size: cleanOriginalLayout.legend.font?.size || 11,
           },
         }
       : {
