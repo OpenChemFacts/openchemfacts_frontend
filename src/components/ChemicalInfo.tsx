@@ -154,9 +154,13 @@ export const ChemicalInfo = ({ cas, chemical_name: propChemicalName }: ChemicalI
         {casInfo && (() => {
           // Get all additional fields from the API response (excluding already displayed fields)
           // L'API utilise 'name' pour le nom chimique
-          const excludedFields = ['cas_number', 'name'];
+          // Exclude EffectFactor(S) fields as they are handled by EffectFactors component
+          const excludedFields = ['cas_number', 'name', 'EffectFactor(S)', 'EffectFactor', 'EffectFactors', 'effect_factors', 'effectFactors'];
           const additionalFields = Object.keys(casInfo).filter(
-            key => !excludedFields.includes(key) && casInfo[key] !== undefined && casInfo[key] !== null
+            key => !excludedFields.includes(key) && 
+                   !key.toLowerCase().includes('effectfactor') &&
+                   casInfo[key] !== undefined && 
+                   casInfo[key] !== null
           );
           
           // Known fields to display with labels
