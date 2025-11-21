@@ -337,7 +337,7 @@ export const BenchmarkComparison = () => {
         ) : error ? (
           <ErrorDisplay error={error} />
         ) : (
-          <div ref={plotRef} className="w-full h-[500px] sm:h-[600px] md:h-[700px] lg:h-[800px] xl:h-[900px]" />
+          <div ref={plotRef} className="w-full min-h-[70vh] h-[70vh]" />
         )}
       </CardContent>
     </Card>
