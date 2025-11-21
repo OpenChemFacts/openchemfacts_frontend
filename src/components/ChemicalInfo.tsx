@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { FlaskConical } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useCasList } from "@/hooks/useCasList";
@@ -158,12 +157,16 @@ export const ChemicalInfo = ({ cas, chemical_name: propChemicalName }: ChemicalI
             n_species: 'Number of Species',
             n_trophic_level: 'Trophic Levels',
             n_results: 'Total Results',
+            INCHIKEY: 'InChI Key',
+            Kingdom: 'Kingdom',
+            Superclass: 'Superclass',
+            Class: 'Class',
           };
 
           // If there are additional fields to display
           if (additionalFields.length > 0) {
             return (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
                 {additionalFields.map((field) => {
                   const label = knownFields[field] || field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                   const value = casInfo[field];
@@ -172,9 +175,7 @@ export const ChemicalInfo = ({ cas, chemical_name: propChemicalName }: ChemicalI
                     <div key={field}>
                       <p className="text-sm text-muted-foreground mb-1">{label}</p>
                       <p className="font-semibold text-lg">
-                        <Badge variant="secondary" className="text-base px-3 py-1">
-                          {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                        </Badge>
+                        {typeof value === 'object' ? JSON.stringify(value) : String(value)}
                       </p>
                     </div>
                   );
