@@ -66,7 +66,7 @@ export const API_ENDPOINTS = {
   /**
    * Search endpoint with query and optional limit.
    * Supports exact CAS match, exact/partial name match (case-insensitive).
-   * Currently defined but not actively used (search is done via CAS_LIST filtering).
+   * Used by SearchBar component for real-time search suggestions.
    * @param query - Search query string (CAS number or chemical name)
    * @param limit - Maximum number of results (default: 20, max: 100)
    */

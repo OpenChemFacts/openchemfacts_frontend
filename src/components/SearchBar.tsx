@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { apiFetch, ApiError } from "@/lib/api";
-import { API_ENDPOINTS } from "@/lib/config";
 import { normalizeCas, compareCas } from "@/lib/cas-utils";
 
 export interface ChemicalMetadata {
@@ -19,15 +18,18 @@ interface CasItem {
   chemical_name?: string;
 }
 
-type CasListResponse = Array<{ cas_number: string; name?: string }>;
+type SearchResponse = {
+  query: string;
+  count: number;
+  matches: Array<{ cas: string; name?: string }>;
+};
 
 interface SearchBarProps {
   onCasSelect: (metadata: ChemicalMetadata) => void;
   initialCas?: string;
 }
 
-const MAX_SUGGESTIONS = 10;
-const DEBOUNCE_DELAY = 200; // ms
+const DEBOUNCE_DELAY = 300;
 
 export const SearchBar = ({ onCasSelect, initialCas }: SearchBarProps) => {
   const [searchTerm, setSearchTerm] = useState(initialCas || "");
@@ -36,133 +38,89 @@ export const SearchBar = ({ onCasSelect, initialCas }: SearchBarProps) => {
   const errorShownRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Fetch CAS list directly from API endpoint
-  const { data: casListResponse, error, isLoading } = useQuery({
-    queryKey: ["cas-list"],
-    queryFn: async () => {
-      const response = await apiFetch<CasListResponse>(API_ENDPOINTS.CAS_LIST);
-      return response;
+  const { data: searchResponse, error, isLoading } = useQuery({
+    queryKey: ["search", debouncedSearchTerm.trim()],
+    queryFn: async (): Promise<SearchResponse | null> => {
+      const trimmed = debouncedSearchTerm.trim();
+      if (!trimmed) return null;
+      
+      const endpoint = `/search?query=${encodeURIComponent(trimmed)}`;
+      return apiFetch<SearchResponse>(endpoint);
     },
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
+    enabled: debouncedSearchTerm.trim().length > 0,
+    staleTime: 30 * 1000,
     retry: false,
   });
 
-  // Convert API response to array format for easier use
-  const casList: CasItem[] = useMemo(() => {
-    if (!casListResponse) return [];
-    return casListResponse.map((item) => ({
-      cas_number: item.cas_number,
+  const searchResults: CasItem[] = useMemo(() => {
+    if (!searchResponse?.matches || !Array.isArray(searchResponse.matches)) {
+      return [];
+    }
+    return searchResponse.matches.map((item) => ({
+      cas_number: item.cas,
       chemical_name: item.name,
     }));
-  }, [casListResponse]);
+  }, [searchResponse]);
 
-  // Debounce search term for better performance
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
     }, DEBOUNCE_DELAY);
-
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Debug log: check how many substances have a chemical_name (dev only)
   useEffect(() => {
-    if (import.meta.env.DEV && casList.length > 0) {
-      const withNames = casList.filter(item => item.chemical_name).length;
-      console.log(`[SearchBar] ${casList.length} substances loaded, ${withNames} have a chemical name (${Math.round(withNames/casList.length*100)}%)`);
-    }
-  }, [casList]);
-
-  // Show a notification if list loading error (only once)
-  useEffect(() => {
-    if (error && !errorShownRef.current) {
-      const errorMessage = error instanceof ApiError 
-        ? error.message 
-        : "Unable to load the chemical list";
-      toast.error(errorMessage);
+    if (error && !errorShownRef.current && debouncedSearchTerm.trim()) {
+      const message = error instanceof ApiError ? error.message : "Unable to search substances";
+      toast.error(message);
       errorShownRef.current = true;
     }
-    // Reset the flag if the error disappears (successful request)
-    if (!error && errorShownRef.current) {
+    if (!error) {
       errorShownRef.current = false;
     }
-  }, [error]);
+  }, [error, debouncedSearchTerm]);
 
-  // Optimized filtered CAS list with memorization
-  const filteredCas = useMemo(() => {
-    if (!debouncedSearchTerm.trim() || casList.length === 0) return [];
-    
-    const searchLower = debouncedSearchTerm.toLowerCase().trim();
-    const normalizedCasSearch = normalizeCas(debouncedSearchTerm).toLowerCase();
-    
-    return casList
-      .filter((item) => {
-        const normalizedCas = normalizeCas(item.cas_number).toLowerCase();
-        const normalizedName = item.chemical_name?.toLowerCase() || '';
-        return normalizedCas.includes(normalizedCasSearch) || normalizedName.includes(searchLower);
-      })
-      .slice(0, MAX_SUGGESTIONS);
-  }, [debouncedSearchTerm, casList]);
-
-  // Helper function to select a CAS item
   const selectCasItem = useCallback((item: CasItem) => {
-    const metadata = {
+    onCasSelect({
       cas: item.cas_number,
       chemical_name: item.chemical_name,
-    };
-    
-    // Debug log in development
-    if (import.meta.env.DEV) {
-      console.log(`[SearchBar] CAS selected:`, metadata);
-    }
-    
-    onCasSelect(metadata);
+    });
     setSearchTerm(item.cas_number);
     setShowSuggestions(false);
   }, [onCasSelect]);
 
-  // Handle search submission
   const handleSearch = useCallback(() => {
-    const trimmedSearch = searchTerm.trim();
-    if (!trimmedSearch) {
+    const trimmed = searchTerm.trim();
+    if (!trimmed) {
       toast.error("Please enter a CAS number or chemical name");
       return;
     }
-    
-    const normalizedSearch = normalizeCas(trimmedSearch);
-    
-    // Try exact CAS match first (normalized)
-    const exactMatch = casList.find(item => compareCas(item.cas_number, normalizedSearch));
-    if (exactMatch) {
-      selectCasItem(exactMatch);
-      return;
-    }
-    
-    // Try case-insensitive match on CAS (normalized) or name
-    const matchedItem = casList.find(item => 
-      compareCas(item.cas_number, normalizedSearch) ||
-      item.chemical_name?.toLowerCase().trim() === trimmedSearch.toLowerCase()
-    );
-    
-    if (matchedItem) {
-      selectCasItem(matchedItem);
-    } else if (filteredCas.length > 0) {
-      // If we have filtered suggestions, take the first one
-      selectCasItem(filteredCas[0]);
-      toast.info(`Substance selected: ${filteredCas[0].cas_number}`);
+
+    const normalized = normalizeCas(trimmed);
+
+    // Try to find a match in search results
+    if (searchResults.length > 0) {
+      const match = searchResults.find(
+        (item) =>
+          compareCas(item.cas_number, normalized) ||
+          item.chemical_name?.toLowerCase().trim() === trimmed.toLowerCase()
+      );
+      
+      if (match) {
+        selectCasItem(match);
+        return;
+      }
+      
+      // Fallback to first result
+      selectCasItem(searchResults[0]);
+      toast.info(`Substance selected: ${searchResults[0].cas_number}`);
     } else {
-      // Accept the normalized input and let the API validate
-      // Don't display an error here as the substance might exist in the database
-      // even if it's not in the local list (list may be incomplete)
-      onCasSelect({
-        cas: normalizedSearch,
-        chemical_name: undefined,
-      });
+      // No results - still allow selection (will be validated by other API endpoints)
+      onCasSelect({ cas: normalized, chemical_name: undefined });
       setShowSuggestions(false);
     }
-  }, [searchTerm, casList, filteredCas, onCasSelect, selectCasItem]);
+  }, [searchTerm, searchResults, onCasSelect, selectCasItem]);
 
-  // Update search term when initialCas changes
   useEffect(() => {
     if (initialCas) {
       setSearchTerm(initialCas);
@@ -170,47 +128,36 @@ export const SearchBar = ({ onCasSelect, initialCas }: SearchBarProps) => {
     }
   }, [initialCas]);
 
-  // Handle click outside to close suggestions
   useEffect(() => {
+    if (!showSuggestions) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
       }
     };
 
-    if (showSuggestions) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showSuggestions]);
 
-  // Handle input change
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
     setShowSuggestions(true);
-  }, []);
+  };
 
-  // Handle input focus
-  const handleInputFocus = useCallback(() => {
-    if (searchTerm) {
-      setShowSuggestions(true);
-    }
-  }, [searchTerm]);
+  const handleInputFocus = () => {
+    if (searchTerm) setShowSuggestions(true);
+  };
 
-  // Handle keyboard navigation
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSearch();
     } else if (e.key === "Escape") {
       setShowSuggestions(false);
     }
-  }, [handleSearch]);
-
-  // Handle suggestion item click
-  const handleSuggestionClick = useCallback((item: CasItem) => {
-    selectCasItem(item);
-  }, [selectCasItem]);
+  };
 
   return (
     <div ref={containerRef} className="relative max-w-3xl mx-auto">
@@ -253,17 +200,18 @@ export const SearchBar = ({ onCasSelect, initialCas }: SearchBarProps) => {
           role="listbox"
           aria-label="Search suggestions"
         >
-          {filteredCas.length > 0 ? (
-            filteredCas.map((item) => (
+          {isLoading ? (
+            <div className="px-4 py-3 text-sm text-muted-foreground text-center" role="status">
+              Searching...
+            </div>
+          ) : searchResults.length > 0 ? (
+            searchResults.map((item) => (
               <button
                 key={item.cas_number}
                 type="button"
                 role="option"
                 className="w-full text-left px-4 py-2 hover:bg-muted rounded-md transition-colors focus:bg-muted focus:outline-none"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSuggestionClick(item);
-                }}
+                onClick={() => selectCasItem(item)}
                 aria-label={`Select ${item.cas_number}${item.chemical_name ? ` - ${item.chemical_name}` : ''}`}
               >
                 <div className="font-mono text-sm font-semibold">{item.cas_number}</div>

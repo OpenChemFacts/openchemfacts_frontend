@@ -29,9 +29,9 @@ export const useCasList = () => {
     retry: false,
   });
 
-  // Convert API response (Array<{cas_number, name}>) to internal format (Array<{cas_number, chemical_name}>)
+  // Convert API response (Array<{cas_number, name}>) to internal format (Array<{cas_number, chemical_name}>) 
   // L'API utilise 'name' mais le code interne utilise 'chemical_name' pour cohérence
-  const casList: CasItem[] = casListResponse
+  const casList: CasItem[] = casListResponse && Array.isArray(casListResponse)
     ? casListResponse.map((item) => ({
         cas_number: item.cas_number,
         chemical_name: item.name,
