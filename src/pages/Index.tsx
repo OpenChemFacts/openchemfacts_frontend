@@ -7,7 +7,6 @@ import { StatsOverview } from "@/components/StatsOverview";
 import { Header } from "@/components/Header";
 import { BenchmarkComparison } from "@/components/BenchmarkComparison";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useCasList } from "@/hooks/useCasList";
 
 const DEFAULT_CAS = "50-00-0";
@@ -17,12 +16,12 @@ const Index = () => {
     cas: DEFAULT_CAS,
   });
 
-  // Get CAS count (Chemicals available) and list
-  const { count: casCount, isLoading: isCasListLoading, getChemicalName } = useCasList();
+  // Get chemical name helper from useCasList
+  const { getChemicalName } = useCasList();
 
   // Load chemical name for default CAS when list is available
   useEffect(() => {
-    if (!isCasListLoading && selectedChemical.cas === DEFAULT_CAS && !selectedChemical.chemical_name) {
+    if (selectedChemical.cas === DEFAULT_CAS && !selectedChemical.chemical_name) {
       const chemicalName = getChemicalName(DEFAULT_CAS);
       if (chemicalName) {
         setSelectedChemical(prev => ({
@@ -31,7 +30,7 @@ const Index = () => {
         }));
       }
     }
-  }, [isCasListLoading, getChemicalName, selectedChemical.cas, selectedChemical.chemical_name]);
+  }, [getChemicalName, selectedChemical.cas, selectedChemical.chemical_name]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -51,14 +50,6 @@ const Index = () => {
           <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-center">
             <p className="text-sm font-medium text-foreground">
               🚧 Platform under development • Currently integrating a first dataset: Ecotox (US EPA)
-            </p>
-            <p className="text-sm font-medium text-foreground mt-2">
-              Chemicals available: {isCasListLoading ? (
-                <Skeleton className="inline-block h-4 w-16 align-middle" />
-              ) : (
-                <span className="font-semibold">{casCount?.toLocaleString() || "—"}</span>
-              )}{" "}
-              out of {Number(10278).toLocaleString()} initially
             </p>
             <p className="text-sm font-medium text-foreground mt-1">
               (

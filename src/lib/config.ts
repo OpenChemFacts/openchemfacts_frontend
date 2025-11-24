@@ -32,16 +32,8 @@ if (import.meta.env.DEV) {
  * - /plot/ssd/{identifier} - SSD plot for a CAS/identifier (uses Plotly.js)
  * - /plot/ec10eq/{identifier} - EC10 equivalent plot for a CAS/identifier (uses Plotly.js)
  * - /plot/ssd/comparison - Compare multiple SSDs (POST, uses Plotly.js)
- * - / - Root endpoint with API information
- * - /health - Health check endpoint
  */
 export const API_ENDPOINTS = {
-  /**
-   * Root endpoint providing API information and available endpoints.
-   * Returns API name, version, status, and list of endpoints.
-   * Currently defined but not actively used in the frontend.
-   */
-  ROOT: '/',
   /**
    * Get summary statistics of the database.
    * Returns total number of chemicals, records, EF counts, etc.
@@ -103,11 +95,5 @@ export const API_ENDPOINTS = {
    * The frontend uses Plotly.js to render the comparison graph.
    */
   SSD_COMPARISON: '/plot/ssd/comparison',
-  /**
-   * Health check endpoint to verify API and data availability.
-   * Returns status, timestamp, data loading status, and version.
-   * Currently not used in the frontend but available for monitoring.
-   */
-  HEALTH: '/health',
 };
 

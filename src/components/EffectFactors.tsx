@@ -36,8 +36,6 @@ interface CasInfoResponse {
   [key: string]: any;
 }
 
-// Note: EXCLUDED_KEYS is no longer needed as we parse the structured EffectFactor(S) data
-
 export const EffectFactors = ({ cas }: EffectFactorsProps) => {
   const normalizedCas = cas ? normalizeCas(cas) : '';
 
