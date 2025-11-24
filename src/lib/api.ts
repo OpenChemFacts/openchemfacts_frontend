@@ -15,6 +15,45 @@ export class ApiError extends Error {
 }
 
 /**
+ * Sanitizes error messages to prevent exposing sensitive technical details
+ * @param message - Raw error message from the server
+ * @returns Sanitized error message safe to display to users
+ */
+function sanitizeErrorMessage(message: string): string {
+  // List of sensitive keywords that should not be exposed to users
+  const sensitivePatterns = [
+    /database/i,
+    /sql/i,
+    /query/i,
+    /connection/i,
+    /password/i,
+    /secret/i,
+    /token/i,
+    /api[_-]?key/i,
+    /stack[_-]?trace/i,
+    /exception/i,
+    /traceback/i,
+    /file[_-]?path/i,
+    /directory/i,
+  ];
+
+  // Check if message contains sensitive information
+  for (const pattern of sensitivePatterns) {
+    if (pattern.test(message)) {
+      return "An error occurred while processing your request. Please try again later.";
+    }
+  }
+
+  // Limit message length to prevent extremely long error messages
+  const maxLength = 200;
+  if (message.length > maxLength) {
+    return message.substring(0, maxLength) + "...";
+  }
+
+  return message;
+}
+
+/**
  * Fonction utilitaire pour effectuer des appels API avec gestion d'erreurs
  */
 export async function apiFetch<T>(
@@ -70,7 +109,9 @@ export async function apiFetch<T>(
       try {
         const errorData = await response.json();
         if (errorData.detail || errorData.message) {
-          errorMessage = errorData.detail || errorData.message;
+          const rawMessage = errorData.detail || errorData.message;
+          // Sanitize error message to prevent exposing sensitive information
+          errorMessage = sanitizeErrorMessage(rawMessage);
         }
       } catch {
         // If the response is not JSON, use the default message

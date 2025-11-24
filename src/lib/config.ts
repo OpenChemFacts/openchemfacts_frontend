@@ -7,8 +7,10 @@
  */
 export const API_BASE_URL = 'https://api.openchemfacts.com/api';
 
-// Debug log in development and production (to help troubleshoot API issues)
-console.log(`[API Config] Base URL: ${API_BASE_URL}`);
+// Debug log in development only (to help troubleshoot API issues)
+if (import.meta.env.DEV) {
+  console.log(`[API Config] Base URL: ${API_BASE_URL}`);
+}
 
 /**
  * API Endpoints Configuration

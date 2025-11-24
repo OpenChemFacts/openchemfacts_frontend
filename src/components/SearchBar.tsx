@@ -30,6 +30,7 @@ interface SearchBarProps {
 }
 
 const DEBOUNCE_DELAY = 300;
+const MAX_SEARCH_LENGTH = 200; // Maximum length for search input to prevent DoS
 
 export const SearchBar = ({ onCasSelect, initialCas }: SearchBarProps) => {
   const [searchTerm, setSearchTerm] = useState(initialCas || "");
@@ -142,8 +143,12 @@ export const SearchBar = ({ onCasSelect, initialCas }: SearchBarProps) => {
   }, [showSuggestions]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    setShowSuggestions(true);
+    const value = e.target.value;
+    // Limit input length to prevent DoS attacks and excessive API calls
+    if (value.length <= MAX_SEARCH_LENGTH) {
+      setSearchTerm(value);
+      setShowSuggestions(true);
+    }
   };
 
   const handleInputFocus = () => {
