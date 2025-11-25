@@ -23,7 +23,7 @@ export const Header = ({ onLogoClick }: HeaderProps) => {
             </Link>
             
             <a 
-              href="https://openchemfacts-api.osc-fr1.scalingo.io/docs"
+              href="https://api.openchemfacts.com/docs"
               target="_blank"
               rel="noopener noreferrer"
             >
