@@ -27,6 +27,14 @@ interface MetadataResponse {
     unit?: string;
     definition?: string;
   };
+  SSD?: {
+    summary?: string;
+    why?: string;
+  };
+  EC10eq?: {
+    summary?: string;
+    why?: string;
+  };
   [key: string]: any;
 }
 
@@ -54,7 +62,7 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
     enabled: !!cas,
   });
 
-  // Fetch metadata to get HC20 definition (non-blocking, for SSD plots only)
+  // Fetch metadata to get context information (summary and why) and HC20 definition
   const { data: metadata } = useQuery({
     queryKey: ["metadata"],
     queryFn: async () => {
@@ -64,11 +72,16 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
     staleTime: 30 * 60 * 1000, // Cache for 30 minutes
     retry: false,
     throwOnError: false,
-    enabled: type === "ssd", // Only fetch for SSD plots
+    // Fetch for both SSD and EC10eq plots
   });
 
-  // Extract HC20 definition from metadata
+  // Extract HC20 definition from metadata (for SSD plots)
   const hc20Definition = metadata?.HC20?.definition;
+
+  // Extract context information (summary and why) based on plot type
+  const contextInfo = type === "ssd" 
+    ? metadata?.SSD
+    : metadata?.EC10eq;
 
   // Check if we should display a message instead of the plot
   // This happens when SSD data has a message and no curve (single endpoint case)
@@ -269,6 +282,16 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
             <BarChart3 className="h-5 w-5 text-accent" />
             {title}
           </CardTitle>
+          {(contextInfo?.summary || contextInfo?.why) && (
+            <div className="mt-3 space-y-1 text-sm text-muted-foreground whitespace-nowrap">
+              {contextInfo.summary && (
+                <span>{contextInfo.summary}</span>
+              )}
+              {contextInfo.why && (
+                <span className="italic">{contextInfo.why}</span>
+              )}
+            </div>
+          )}
         </CardHeader>
         <CardContent className="p-2 sm:p-4">
           <div className="flex items-center justify-center h-[80vh] min-h-[600px]">
@@ -290,6 +313,16 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
             <BarChart3 className="h-5 w-5 text-accent" />
             {title}
           </CardTitle>
+          {(contextInfo?.summary || contextInfo?.why) && (
+            <div className="mt-3 space-y-1 text-sm text-muted-foreground whitespace-nowrap">
+              {contextInfo.summary && (
+                <span>{contextInfo.summary}</span>
+              )}
+              {contextInfo.why && (
+                <span className="italic">{contextInfo.why}</span>
+              )}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <Skeleton className="h-[80vh] min-h-[600px] w-full" />
@@ -305,6 +338,16 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
           <BarChart3 className="h-5 w-5 text-accent" />
           {title}
         </CardTitle>
+        {(contextInfo?.summary || contextInfo?.why) && (
+          <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+            {contextInfo.summary && (
+              <p>{contextInfo.summary}</p>
+            )}
+            {contextInfo.why && (
+              <p className="italic">{contextInfo.why}</p>
+            )}
+          </div>
+        )}
       </CardHeader>
       <CardContent className="p-2 sm:p-4">
         <div 
