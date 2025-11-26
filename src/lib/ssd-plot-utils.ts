@@ -71,8 +71,10 @@ function capitalize(str: string): string {
 /**
  * Convert SSD JSON data to Plotly format
  * Based on plot_ssd_curve.py implementation
+ * @param ssdData - SSD data from the API
+ * @param hc20Definition - Optional definition of HC20 from metadata (for tooltip)
  */
-export function createSSDPlotFromData(ssdData: SSDData): PlotlyData {
+export function createSSDPlotFromData(ssdData: SSDData, hc20Definition?: string): PlotlyData {
   const { cas_number, chemical_name, ssd_parameters, summary, species_data, ssd_curve } = ssdData;
   const { hc20_mgL } = ssd_parameters;
   const { n_species, n_ecotox_group } = summary;
@@ -271,18 +273,34 @@ export function createSSDPlotFromData(ssdData: SSDData): PlotlyData {
       return formatted;
     };
 
-    layout.annotations.push({
+    // Build annotation text
+    const annotationText = `<b>HC20 = ${formatHC20(hc20_mgL)} mg/L</b>`;
+
+    // Create annotation with hovertext for definition
+    const annotation: any = {
       x: fracX,
       y: 0.93,
       xref: 'paper',
       yref: 'paper',
-      text: `<b>HC20 = ${formatHC20(hc20_mgL)} mg/L</b>`,
+      text: annotationText,
       showarrow: false,
       font: { color: 'red', size: 14 },
       bgcolor: 'rgba(255,255,255,0.8)',
       bordercolor: 'red',
       borderwidth: 1,
-    });
+    };
+
+    // Add hovertext with definition if available
+    // Plotly will show this in the tooltip when hovering over the annotation
+    if (hc20Definition) {
+      annotation.hovertext = `<br>${hc20Definition}`;
+      annotation.hoverlabel = {
+        font: { color: 'black', size: 12 },
+        namelength: -1,
+      };
+    }
+
+    layout.annotations.push(annotation);
   }
 
   return {

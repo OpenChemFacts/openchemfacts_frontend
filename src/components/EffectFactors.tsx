@@ -36,8 +36,78 @@ interface CasInfoResponse {
   [key: string]: any;
 }
 
+/**
+ * Structure of the API response /metadata
+ * Contains metadata about fields and their units
+ * Example response:
+ * {
+ *   "EF": {
+ *     "unit": "PAF·m³/kg",
+ *     "formula": "EF = O,2 / HC20",
+ *     "summary": "...",
+ *     "details": "..."
+ *   },
+ *   "HC20": { "unit": "mg/L", ... },
+ *   "EC10eq": { "unit": "mg/L", ... },
+ *   "SSD": { "definition": "...", ... }
+ * }
+ */
+interface MetadataResponse {
+  EF?: {
+    unit?: string;
+    formula?: string;
+    summary?: string;
+    details?: string;
+  };
+  HC20?: {
+    unit?: string;
+    definition?: string;
+  };
+  EC10eq?: {
+    unit?: string;
+    definition?: string;
+  };
+  SSD?: {
+    definition?: string;
+    summary?: string;
+  };
+  [key: string]: any;
+}
+
 export const EffectFactors = ({ cas }: EffectFactorsProps) => {
   const normalizedCas = cas ? normalizeCas(cas) : '';
+
+  // Fetch metadata to get EF unit (non-blocking, with fallback)
+  // This query is non-critical - if it fails, we use "EF" as fallback
+  const { data: metadata, error: metadataError } = useQuery({
+    queryKey: ["metadata"],
+    queryFn: async () => {
+      const endpoint = API_ENDPOINTS.METADATA;
+      if (import.meta.env.DEV) {
+        console.log(`[EffectFactors] Fetching metadata from: ${endpoint}`);
+      }
+      return apiFetch<MetadataResponse>(endpoint);
+    },
+    staleTime: 30 * 60 * 1000, // Cache for 30 minutes (metadata rarely changes)
+    retry: false,
+    // Don't throw errors - this is a non-critical request
+    throwOnError: false,
+  });
+
+  // Log metadata errors in dev mode (non-critical)
+  if (import.meta.env.DEV && metadataError) {
+    console.warn(`[EffectFactors] Failed to fetch metadata (non-critical, using fallback):`, metadataError);
+  }
+
+  // Extract EF unit from metadata with fallback to "EF"
+  // Structure: metadata.EF.unit (e.g., "PAF·m³/kg")
+  let efUnit = "EF";
+  if (metadata && typeof metadata === 'object' && metadata.EF && typeof metadata.EF === 'object') {
+    const efData = metadata.EF as { unit?: string };
+    if (efData.unit && typeof efData.unit === 'string') {
+      efUnit = efData.unit;
+    }
+  }
 
   // Fetch CAS info to get effect factors
   const { data: casInfo, isLoading, error } = useQuery({
@@ -231,7 +301,7 @@ export const EffectFactors = ({ cas }: EffectFactorsProps) => {
                             : String(source.ef)}
                         </span>
                         <Badge variant="outline" className="text-xs">
-                          EF
+                          {efUnit}
                         </Badge>
                       </>
                     ) : (

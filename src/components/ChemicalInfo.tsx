@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCasList } from "@/hooks/useCasList";
 import { normalizeCas, compareCas } from "@/lib/cas-utils";
 import { API_ENDPOINTS } from "@/lib/config";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -98,7 +98,7 @@ export const ChemicalInfo = ({ cas, chemical_name: propChemicalName }: ChemicalI
 
   // Don't display error if it's just a 404 (endpoint may not exist for all CAS)
   // Only show error for other types of failures
-  const shouldShowError = casInfoError && !(casInfoError instanceof Error && casInfoError.message.includes('404'));
+  const shouldShowError = casInfoError && !(casInfoError instanceof ApiError && casInfoError.status === 404);
   
   if (shouldShowError) {
     return (

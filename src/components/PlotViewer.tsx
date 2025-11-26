@@ -19,6 +19,17 @@ import { ErrorDisplay } from "@/components/ui/error-display";
 import { isSSDData, createSSDPlotFromData, type SSDData } from "@/lib/ssd-plot-utils";
 import { isEC10eqData, createEC10eqPlotFromData, type EC10eqData } from "@/lib/ec10eq-plot-utils";
 
+/**
+ * Structure of the API response /metadata
+ */
+interface MetadataResponse {
+  HC20?: {
+    unit?: string;
+    definition?: string;
+  };
+  [key: string]: any;
+}
+
 interface PlotViewerProps {
   cas: string;
   type: "ssd" | "ec10eq";
@@ -43,6 +54,22 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
     enabled: !!cas,
   });
 
+  // Fetch metadata to get HC20 definition (non-blocking, for SSD plots only)
+  const { data: metadata } = useQuery({
+    queryKey: ["metadata"],
+    queryFn: async () => {
+      const metadataEndpoint = API_ENDPOINTS.METADATA;
+      return apiFetch<MetadataResponse>(metadataEndpoint);
+    },
+    staleTime: 30 * 60 * 1000, // Cache for 30 minutes
+    retry: false,
+    throwOnError: false,
+    enabled: type === "ssd", // Only fetch for SSD plots
+  });
+
+  // Extract HC20 definition from metadata
+  const hc20Definition = metadata?.HC20?.definition;
+
   // Check if we should display a message instead of the plot
   // This happens when SSD data has a message and no curve (single endpoint case)
   const shouldShowMessage = rawData && isSSDData(rawData) && rawData.message && !rawData.ssd_curve;
@@ -50,7 +77,7 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
   // Convert JSON data to Plotly format if needed
   const data: PlotlyData | null = rawData && !shouldShowMessage
     ? isSSDData(rawData)
-      ? createSSDPlotFromData(rawData)
+      ? createSSDPlotFromData(rawData, hc20Definition)
       : isEC10eqData(rawData)
       ? createEC10eqPlotFromData(rawData, 'trophic_group')
       : (rawData as PlotlyData)

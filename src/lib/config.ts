@@ -95,5 +95,10 @@ export const API_ENDPOINTS = {
    * The frontend uses Plotly.js to render the comparison graph.
    */
   SSD_COMPARISON: '/plot/ssd/comparison',
+  /**
+   * Get metadata information about the API.
+   * Returns metadata including field units (e.g., "EF => unit").
+   */
+  METADATA: '/metadata',
 };
 
