@@ -1,11 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart3, Plus, X, Play } from "lucide-react";
-import { API_ENDPOINTS } from "@/lib/config";
-import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import { usePlotly } from "@/hooks/usePlotly";
 import { normalizeCas, compareCas } from "@/lib/cas-utils";
@@ -19,12 +16,7 @@ import {
 } from "@/lib/plotly-utils";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { isComparisonData, createComparisonPlotFromData, type ComparisonData } from "@/lib/ssd-plot-utils";
-
-type SearchResponse = {
-  query: string;
-  count: number;
-  matches: Array<{ cas: string; name?: string }>;
-};
+import { useSearchWithContext, useSSDComparison } from "@/hooks/api-hooks";
 
 interface CasItem {
   cas_number: string;
@@ -58,72 +50,18 @@ export const BenchmarkComparison = () => {
     return () => clearTimeout(timer);
   }, [searchTerms]);
 
-  // Fetch search results for each search term (individual queries for each index)
+  // Fetch search results for each search term using centralized hooks
   const debouncedTerm0 = debouncedSearchTerms[0]?.trim() || "";
   const debouncedTerm1 = debouncedSearchTerms[1]?.trim() || "";
   const debouncedTerm2 = debouncedSearchTerms[2]?.trim() || "";
   const debouncedTerm3 = debouncedSearchTerms[3]?.trim() || "";
   const debouncedTerm4 = debouncedSearchTerms[4]?.trim() || "";
 
-  const searchQuery0 = useQuery({
-    queryKey: ["search", "benchmark-0", debouncedTerm0],
-    queryFn: async (): Promise<SearchResponse | null> => {
-      if (!debouncedTerm0) return null;
-      const endpoint = API_ENDPOINTS.SEARCH(debouncedTerm0, 10);
-      return apiFetch<SearchResponse>(endpoint);
-    },
-    enabled: debouncedTerm0.length > 0,
-    staleTime: 30 * 1000,
-    retry: false,
-  });
-
-  const searchQuery1 = useQuery({
-    queryKey: ["search", "benchmark-1", debouncedTerm1],
-    queryFn: async (): Promise<SearchResponse | null> => {
-      if (!debouncedTerm1) return null;
-      const endpoint = API_ENDPOINTS.SEARCH(debouncedTerm1, 10);
-      return apiFetch<SearchResponse>(endpoint);
-    },
-    enabled: debouncedTerm1.length > 0,
-    staleTime: 30 * 1000,
-    retry: false,
-  });
-
-  const searchQuery2 = useQuery({
-    queryKey: ["search", "benchmark-2", debouncedTerm2],
-    queryFn: async (): Promise<SearchResponse | null> => {
-      if (!debouncedTerm2) return null;
-      const endpoint = API_ENDPOINTS.SEARCH(debouncedTerm2, 10);
-      return apiFetch<SearchResponse>(endpoint);
-    },
-    enabled: debouncedTerm2.length > 0,
-    staleTime: 30 * 1000,
-    retry: false,
-  });
-
-  const searchQuery3 = useQuery({
-    queryKey: ["search", "benchmark-3", debouncedTerm3],
-    queryFn: async (): Promise<SearchResponse | null> => {
-      if (!debouncedTerm3) return null;
-      const endpoint = API_ENDPOINTS.SEARCH(debouncedTerm3, 10);
-      return apiFetch<SearchResponse>(endpoint);
-    },
-    enabled: debouncedTerm3.length > 0,
-    staleTime: 30 * 1000,
-    retry: false,
-  });
-
-  const searchQuery4 = useQuery({
-    queryKey: ["search", "benchmark-4", debouncedTerm4],
-    queryFn: async (): Promise<SearchResponse | null> => {
-      if (!debouncedTerm4) return null;
-      const endpoint = API_ENDPOINTS.SEARCH(debouncedTerm4, 10);
-      return apiFetch<SearchResponse>(endpoint);
-    },
-    enabled: debouncedTerm4.length > 0,
-    staleTime: 30 * 1000,
-    retry: false,
-  });
+  const searchQuery0 = useSearchWithContext("benchmark-0", debouncedTerm0, 10);
+  const searchQuery1 = useSearchWithContext("benchmark-1", debouncedTerm1, 10);
+  const searchQuery2 = useSearchWithContext("benchmark-2", debouncedTerm2, 10);
+  const searchQuery3 = useSearchWithContext("benchmark-3", debouncedTerm3, 10);
+  const searchQuery4 = useSearchWithContext("benchmark-4", debouncedTerm4, 10);
 
   // Convert search results to CasItem format
   const searchResults: CasItem[][] = useMemo(() => {
@@ -168,55 +106,52 @@ export const BenchmarkComparison = () => {
     return () => observer.disconnect();
   }, [darkMode]);
 
-  // Fetch comparison plot when user manually triggers it
-  const { data: rawPlotData, isLoading, error, refetch } = useQuery({
-    queryKey: ["ssd-comparison", selectedCas],
-    queryFn: async () => {
-      // Normalize all CAS numbers before sending to API
-      const normalizedCasList = selectedCas.map(cas => normalizeCas(cas));
-      
-      console.log("[BenchmarkComparison] Sending CAS list to API:", normalizedCasList);
-      console.log("[BenchmarkComparison] Request body:", JSON.stringify({ cas_list: normalizedCasList }));
-      
-      try {
-        const response = await apiFetch<ComparisonData | PlotlyData>(API_ENDPOINTS.SSD_COMPARISON, {
-          method: "POST",
-          body: JSON.stringify({ cas_list: normalizedCasList }),
-        });
-        
-        console.log("[BenchmarkComparison] API response received:", response);
-        
-        // Validate response structure
-        if (!response) {
-          throw new Error("Empty response from API");
-        }
-        
-        // Check if it's comparison format or Plotly format
-        if (isComparisonData(response)) {
-          console.log("[BenchmarkComparison] Response is comparison format, converting to Plotly...");
-          const plotlyData = createComparisonPlotFromData(response);
-          console.log("[BenchmarkComparison] Converted to Plotly format:", plotlyData);
-          return plotlyData;
-        } else if (response && 'data' in response && 'layout' in response) {
-          console.log("[BenchmarkComparison] Response is already Plotly format");
-          return response as PlotlyData;
-        } else {
-          console.warn("[BenchmarkComparison] Unknown response format:", response);
-          throw new Error("Unknown response format from API");
-        }
-      } catch (apiError: any) {
-        console.error("[BenchmarkComparison] API error details:", apiError);
-        const errorMessage = apiError?.message || apiError?.toString() || "Unknown error";
-        toast.error(`Failed to load comparison: ${errorMessage}`);
-        throw apiError;
-      }
-    },
-    enabled: shouldFetchPlot && selectedCas.length >= MIN_SUBSTANCES && selectedCas.length <= MAX_SUBSTANCES,
-    retry: false, // Don't retry on error to avoid spamming the API
-  });
+  // Fetch comparison plot when user manually triggers it using centralized hook
+  const { data: rawPlotData, isLoading, error, refetch } = useSSDComparison(
+    selectedCas,
+    shouldFetchPlot && selectedCas.length >= MIN_SUBSTANCES && selectedCas.length <= MAX_SUBSTANCES
+  );
+
+  // Transform the response to Plotly format if needed
+  useEffect(() => {
+    if (rawPlotData) {
+      console.log("[BenchmarkComparison] API response received:", rawPlotData);
+    }
+  }, [rawPlotData]);
 
   // Convert raw data to Plotly format if needed
-  const plotData: PlotlyData | null = rawPlotData || null;
+  const plotData: PlotlyData | null = useMemo(() => {
+    if (!rawPlotData) return null;
+    
+    // Validate response structure
+    if (!rawPlotData) {
+      return null;
+    }
+    
+    // Check if it's comparison format or Plotly format
+    if (isComparisonData(rawPlotData)) {
+      console.log("[BenchmarkComparison] Response is comparison format, converting to Plotly...");
+      const plotlyData = createComparisonPlotFromData(rawPlotData);
+      console.log("[BenchmarkComparison] Converted to Plotly format:", plotlyData);
+      return plotlyData;
+    } else if (rawPlotData && 'data' in rawPlotData && 'layout' in rawPlotData) {
+      console.log("[BenchmarkComparison] Response is already Plotly format");
+      return rawPlotData as PlotlyData;
+    } else {
+      console.warn("[BenchmarkComparison] Unknown response format:", rawPlotData);
+      return null;
+    }
+  }, [rawPlotData]);
+
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      console.error("[BenchmarkComparison] API error details:", error);
+      const errorMessage = error?.message || error?.toString() || "Unknown error";
+      toast.error(`Failed to load comparison: ${errorMessage}`);
+    }
+  }, [error]);
+
 
   // Reset fetch flag when substances change
   useEffect(() => {

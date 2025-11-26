@@ -2,30 +2,17 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FlaskConical } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { useCasList } from "@/hooks/useCasList";
 import { normalizeCas, compareCas } from "@/lib/cas-utils";
-import { API_ENDPOINTS } from "@/lib/config";
-import { apiFetch, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useCasInfo } from "@/hooks/api-hooks";
+import { CasInfoResponse } from "@/lib/api-types";
 
 interface ChemicalInfoProps {
   cas: string;
   chemical_name?: string;
-}
-
-/**
- * Actual format returned by the API /cas/{cas}
- * The API uses 'name' for the chemical name, not 'chemical_name'
- */
-interface CasInfoResponse {
-  cas_number?: string;
-  name?: string; // The API uses 'name', not 'chemical_name'
-  n_species?: number;
-  n_trophic_level?: number;
-  n_results?: number;
-  [key: string]: any;
 }
 
 export const ChemicalInfo = ({ cas, chemical_name: propChemicalName }: ChemicalInfoProps) => {
@@ -42,21 +29,9 @@ export const ChemicalInfo = ({ cas, chemical_name: propChemicalName }: ChemicalI
   // Use the shared hook to get the CAS list
   const { isLoading: isCasListLoading, casList } = useCasList();
   
-  // Fetch detailed CAS information from /api/cas/{cas} endpoint
+  // Fetch detailed CAS information using centralized hook
   // Note: This endpoint may return 404 if not available, which is handled gracefully
-  const { data: casInfo, isLoading: isCasInfoLoading, error: casInfoError } = useQuery({
-    queryKey: ["cas-info", normalizedCas],
-    queryFn: async () => {
-      const endpoint = API_ENDPOINTS.CAS_INFO(normalizedCas);
-      if (import.meta.env.DEV) {
-        console.log(`[ChemicalInfo] Fetching CAS info from: ${endpoint}`);
-      }
-      return apiFetch<CasInfoResponse>(endpoint);
-    },
-    enabled: !!normalizedCas,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    retry: false, // Don't retry on 404
-  });
+  const { data: casInfo, isLoading: isCasInfoLoading, error: casInfoError } = useCasInfo(normalizedCas);
 
   // Debug: log API response in development
   useEffect(() => {

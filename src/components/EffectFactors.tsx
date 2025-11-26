@@ -1,77 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { Activity } from "lucide-react";
-import { API_ENDPOINTS } from "@/lib/config";
-import { apiFetch, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
 import { normalizeCas } from "@/lib/cas-utils";
+import { useCasInfo, useMetadata } from "@/hooks/api-hooks";
+import { CasInfoResponse, MetadataResponse, EffectFactorItem } from "@/lib/api-types";
 
 interface EffectFactorsProps {
   cas: string;
-}
-
-/**
- * Structure of an effect factor in the API response
- * Format: {"Source": "source_name", "EF": ef_value}
- */
-interface EffectFactorItem {
-  Source: string;
-  EF: number;
-}
-
-/**
- * Structure of the API response /cas/{cas}
- * The EffectFactor(S) field can be a JSON string or an array
- */
-interface CasInfoResponse {
-  cas_number?: string;
-  name?: string;
-  "EffectFactor(S)"?: string | EffectFactorItem[];
-  EffectFactor?: string | EffectFactorItem[];
-  EffectFactors?: string | EffectFactorItem[];
-  effect_factors?: EffectFactorItem[];
-  effectFactors?: EffectFactorItem[];
-  [key: string]: any;
-}
-
-/**
- * Structure of the API response /metadata
- * Contains metadata about fields and their units
- * Example response:
- * {
- *   "EF": {
- *     "unit": "PAF·m³/kg",
- *     "formula": "EF = O,2 / HC20",
- *     "summary": "...",
- *     "details": "..."
- *   },
- *   "HC20": { "unit": "mg/L", ... },
- *   "EC10eq": { "unit": "mg/L", ... },
- *   "SSD": { "definition": "...", ... }
- * }
- */
-interface MetadataResponse {
-  EF?: {
-    unit?: string;
-    formula?: string;
-    summary?: string;
-    details?: string;
-  };
-  HC20?: {
-    unit?: string;
-    definition?: string;
-  };
-  EC10eq?: {
-    unit?: string;
-    definition?: string;
-  };
-  SSD?: {
-    definition?: string;
-    summary?: string;
-  };
-  [key: string]: any;
 }
 
 export const EffectFactors = ({ cas }: EffectFactorsProps) => {
@@ -79,20 +17,7 @@ export const EffectFactors = ({ cas }: EffectFactorsProps) => {
 
   // Fetch metadata to get EF unit (non-blocking, with fallback)
   // This query is non-critical - if it fails, we use "EF" as fallback
-  const { data: metadata, error: metadataError } = useQuery({
-    queryKey: ["metadata"],
-    queryFn: async () => {
-      const endpoint = API_ENDPOINTS.METADATA;
-      if (import.meta.env.DEV) {
-        console.log(`[EffectFactors] Fetching metadata from: ${endpoint}`);
-      }
-      return apiFetch<MetadataResponse>(endpoint);
-    },
-    staleTime: 30 * 60 * 1000, // Cache for 30 minutes (metadata rarely changes)
-    retry: false,
-    // Don't throw errors - this is a non-critical request
-    throwOnError: false,
-  });
+  const { data: metadata, error: metadataError } = useMetadata();
 
   // Log metadata errors in dev mode (non-critical)
   if (import.meta.env.DEV && metadataError) {
@@ -109,20 +34,8 @@ export const EffectFactors = ({ cas }: EffectFactorsProps) => {
     }
   }
 
-  // Fetch CAS info to get effect factors
-  const { data: casInfo, isLoading, error } = useQuery({
-    queryKey: ["cas-info", normalizedCas],
-    queryFn: async () => {
-      const endpoint = API_ENDPOINTS.CAS_INFO(normalizedCas);
-      if (import.meta.env.DEV) {
-        console.log(`[EffectFactors] Fetching CAS info from: ${endpoint}`);
-      }
-      return apiFetch<CasInfoResponse>(endpoint);
-    },
-    enabled: !!normalizedCas,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    retry: false,
-  });
+  // Fetch CAS info to get effect factors using centralized hook
+  const { data: casInfo, isLoading, error } = useCasInfo(normalizedCas);
 
   // Extract and parse effect factors from the response
   // The API may return EffectFactor(S) as a JSON string or as an array

@@ -1,23 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Database, FlaskConical, Users, TestTubes } from "lucide-react";
-import { API_ENDPOINTS } from "@/lib/config";
-import { apiFetch } from "@/lib/api";
 import { useCasList } from "@/hooks/useCasList";
 import { ErrorDisplay } from "@/components/ui/error-display";
-
-interface SummaryData {
-  rows: number;
-  columns: number;
-  columns_names: string[];
-}
-
-interface ByColumnData {
-  column: string;
-  unique_values: any[];
-  count: number;
-}
+import { useSummary, useByColumn } from "@/hooks/api-hooks";
 
 interface Stats {
   total_records: number;
@@ -27,26 +13,19 @@ interface Stats {
 }
 
 export const StatsOverview = () => {
-  // Get summary data
-  const { data: summaryData, error: summaryError } = useQuery({
-    queryKey: ["summary"],
-    queryFn: () => apiFetch<SummaryData>(API_ENDPOINTS.SUMMARY),
-  });
+  // Get summary data using centralized hook
+  const { data: summaryData, error: summaryError } = useSummary();
 
   // Use the shared hook for CAS list
   const { count, error: casListError } = useCasList();
 
-  // Get unique species count
-  const { data: speciesData } = useQuery({
-    queryKey: ["by-column", "species_common_name"],
-    queryFn: () => apiFetch<ByColumnData>(API_ENDPOINTS.BY_COLUMN("species_common_name")),
+  // Get unique species count using centralized hook
+  const { data: speciesData } = useByColumn("species_common_name", {
     enabled: !!summaryData,
   });
 
-  // Get unique taxa count (using ecotox_group)
-  const { data: taxaData } = useQuery({
-    queryKey: ["by-column", "ecotox_group_unepsetacjrc2018"],
-    queryFn: () => apiFetch<ByColumnData>(API_ENDPOINTS.BY_COLUMN("ecotox_group_unepsetacjrc2018")),
+  // Get unique taxa count (using ecotox_group) using centralized hook
+  const { data: taxaData } = useByColumn("ecotox_group_unepsetacjrc2018", {
     enabled: !!summaryData,
   });
 

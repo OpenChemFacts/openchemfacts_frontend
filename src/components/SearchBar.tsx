@@ -1,13 +1,12 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Search } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { apiFetch, ApiError } from "@/lib/api";
-import { API_ENDPOINTS } from "@/lib/config";
+import { ApiError } from "@/lib/api";
 import { normalizeCas, compareCas } from "@/lib/cas-utils";
+import { useSearch } from "@/hooks/api-hooks";
 
 export interface ChemicalMetadata {
   cas: string;
@@ -18,12 +17,6 @@ interface CasItem {
   cas_number: string;
   chemical_name?: string;
 }
-
-type SearchResponse = {
-  query: string;
-  count: number;
-  matches: Array<{ cas: string; name?: string }>;
-};
 
 interface SearchBarProps {
   onCasSelect: (metadata: ChemicalMetadata) => void;
@@ -40,19 +33,8 @@ export const SearchBar = ({ onCasSelect, initialCas }: SearchBarProps) => {
   const errorShownRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { data: searchResponse, error, isLoading } = useQuery({
-    queryKey: ["search", debouncedSearchTerm.trim()],
-    queryFn: async (): Promise<SearchResponse | null> => {
-      const trimmed = debouncedSearchTerm.trim();
-      if (!trimmed) return null;
-      
-      const endpoint = API_ENDPOINTS.SEARCH(trimmed);
-      return apiFetch<SearchResponse>(endpoint);
-    },
-    enabled: debouncedSearchTerm.trim().length > 0,
-    staleTime: 30 * 1000,
-    retry: false,
-  });
+  // Use centralized search hook
+  const { data: searchResponse, error, isLoading } = useSearch(debouncedSearchTerm);
 
   const searchResults: CasItem[] = useMemo(() => {
     if (!searchResponse?.matches || !Array.isArray(searchResponse.matches)) {

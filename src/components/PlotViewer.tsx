@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart3 } from "lucide-react";
-import { API_ENDPOINTS } from "@/lib/config";
-import { apiFetch } from "@/lib/api";
 import { usePlotly } from "@/hooks/usePlotly";
 import {
   type PlotlyData,
@@ -18,25 +15,8 @@ import {
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { isSSDData, createSSDPlotFromData, type SSDData } from "@/lib/ssd-plot-utils";
 import { isEC10eqData, createEC10eqPlotFromData, type EC10eqData } from "@/lib/ec10eq-plot-utils";
-
-/**
- * Structure of the API response /metadata
- */
-interface MetadataResponse {
-  HC20?: {
-    unit?: string;
-    definition?: string;
-  };
-  SSD?: {
-    summary?: string;
-    why?: string;
-  };
-  EC10eq?: {
-    summary?: string;
-    why?: string;
-  };
-  [key: string]: any;
-}
+import { useSSDPlot, useEC10eqPlot, useMetadata } from "@/hooks/api-hooks";
+import { MetadataResponse } from "@/lib/api-types";
 
 interface PlotViewerProps {
   cas: string;
@@ -49,31 +29,20 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
   const [darkMode, setDarkMode] = useState(isDarkMode());
   const resizeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const endpoint = type === "ssd" 
-    ? API_ENDPOINTS.SSD_PLOT(cas)
-    : API_ENDPOINTS.EC10EQ_PLOT(cas);
   const title = type === "ssd" 
     ? "Species Sensitivity Distribution (SSD)" 
     : "EC10 Equivalent";
 
-  const { data: rawData, isLoading, error } = useQuery({
-    queryKey: ["plot", cas, type],
-    queryFn: () => apiFetch<PlotlyData | SSDData | EC10eqData>(endpoint),
-    enabled: !!cas,
-  });
+  // Fetch plot data using centralized hooks
+  const ssdQuery = useSSDPlot(cas, { enabled: type === "ssd" && !!cas });
+  const ec10eqQuery = useEC10eqPlot(cas, { enabled: type === "ec10eq" && !!cas });
+  
+  const rawData = type === "ssd" ? ssdQuery.data : ec10eqQuery.data;
+  const isLoading = type === "ssd" ? ssdQuery.isLoading : ec10eqQuery.isLoading;
+  const error = type === "ssd" ? ssdQuery.error : ec10eqQuery.error;
 
   // Fetch metadata to get context information (summary and why) and HC20 definition
-  const { data: metadata } = useQuery({
-    queryKey: ["metadata"],
-    queryFn: async () => {
-      const metadataEndpoint = API_ENDPOINTS.METADATA;
-      return apiFetch<MetadataResponse>(metadataEndpoint);
-    },
-    staleTime: 30 * 60 * 1000, // Cache for 30 minutes
-    retry: false,
-    throwOnError: false,
-    // Fetch for both SSD and EC10eq plots
-  });
+  const { data: metadata } = useMetadata();
 
   // Extract HC20 definition from metadata (for SSD plots)
   const hc20Definition = metadata?.HC20?.definition;
