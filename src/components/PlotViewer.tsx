@@ -252,12 +252,12 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
             {title}
           </CardTitle>
           {(contextInfo?.summary || contextInfo?.why) && (
-            <div className="mt-3 space-y-1 text-sm text-muted-foreground whitespace-nowrap">
+            <div className="mt-3 space-y-1 text-sm text-muted-foreground break-words overflow-wrap-anywhere">
               {contextInfo.summary && (
-                <span>{contextInfo.summary}</span>
+                <div>{contextInfo.summary}</div>
               )}
               {contextInfo.why && (
-                <span className="italic">{contextInfo.why}</span>
+                <div className="italic">{contextInfo.why}</div>
               )}
             </div>
           )}
@@ -283,12 +283,12 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
             {title}
           </CardTitle>
           {(contextInfo?.summary || contextInfo?.why) && (
-            <div className="mt-3 space-y-1 text-sm text-muted-foreground whitespace-nowrap">
+            <div className="mt-3 space-y-1 text-sm text-muted-foreground break-words overflow-wrap-anywhere">
               {contextInfo.summary && (
-                <span>{contextInfo.summary}</span>
+                <div>{contextInfo.summary}</div>
               )}
               {contextInfo.why && (
-                <span className="italic">{contextInfo.why}</span>
+                <div className="italic">{contextInfo.why}</div>
               )}
             </div>
           )}
@@ -308,12 +308,12 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
           {title}
         </CardTitle>
         {(contextInfo?.summary || contextInfo?.why) && (
-          <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+          <div className="mt-3 space-y-1 text-sm text-muted-foreground break-words overflow-wrap-anywhere">
             {contextInfo.summary && (
-              <p>{contextInfo.summary}</p>
+              <div>{contextInfo.summary}</div>
             )}
             {contextInfo.why && (
-              <p className="italic">{contextInfo.why}</p>
+              <div className="italic">{contextInfo.why}</div>
             )}
           </div>
         )}
