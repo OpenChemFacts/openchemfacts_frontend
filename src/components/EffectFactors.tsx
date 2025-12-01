@@ -2,7 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorDisplay } from "@/components/ui/error-display";
-import { Activity } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Activity, Star } from "lucide-react";
 import { ApiError } from "@/lib/api";
 import { normalizeCas } from "@/lib/cas-utils";
 import { useCasInfo, useMetadata } from "@/hooks/api-hooks";
@@ -81,18 +82,20 @@ export const EffectFactors = ({ cas }: EffectFactorsProps) => {
   }
 
   // Extract sources and EF values from parsed effect factors
-  // Each effect factor item in the array has "Source" and "EF" keys
+  // Each effect factor item in the array has "Source", "EF", and "Version" keys
   // We extract all sources (up to 3) from the array
-  const sources: Array<{ source: string; ef: number | string | null }> = [];
+  const sources: Array<{ source: string; version: string | null; ef: number | string | null }> = [];
   
   parsedEffectFactors.slice(0, 3).forEach((factorItem) => {
     if (factorItem && typeof factorItem === 'object') {
       const source = factorItem.Source || '';
+      const version = factorItem.Version || null;
       const ef = factorItem.EF !== undefined ? factorItem.EF : null;
       
       if (source) {
         sources.push({
           source: source,
+          version: version,
           ef: ef !== null && ef !== undefined ? ef : null,
         });
       }
@@ -178,9 +181,15 @@ export const EffectFactors = ({ cas }: EffectFactorsProps) => {
 
   // Display effect factors (maximum 3 sources)
   const displaySources = sources.slice(0, 3);
+  
+  // Check if there are any sources other than OpenChemFacts
+  const hasOfficialSources = displaySources.some(
+    source => source.source.toLowerCase() !== 'openchemfacts'
+  );
 
   return (
-    <Card className="shadow-card">
+    <TooltipProvider>
+      <Card className="shadow-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Activity className="h-5 w-5 text-primary" />
@@ -191,6 +200,12 @@ export const EffectFactors = ({ cas }: EffectFactorsProps) => {
         </CardTitle>
         <CardDescription className="text-sm mt-2">
           Large variations (×2 to ×100) in aquatic ecotoxicity effect factors are common and reflect natural biological and methodological variability.
+          {hasOfficialSources && (
+            <>
+              <br />
+              When results from official methods are available  <Star className="h-2.5 w-2.5 text-yellow-500 fill-yellow-500 inline" />, it is recommended to use these values.
+            </>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -202,9 +217,28 @@ export const EffectFactors = ({ cas }: EffectFactorsProps) => {
                   key={sourceIndex}
                   className="flex items-center justify-between py-2 border-b last:border-b-0"
                 >
-                  <span className="font-medium text-sm">
-                    {source.source}
-                  </span>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium text-sm">
+                        {source.source}
+                      </span>
+                      {source.source.toLowerCase() !== 'openchemfacts' && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Official method</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                    {source.version && (
+                      <span className="text-xs text-muted-foreground">
+                        version {source.version}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
                     {source.ef !== null && source.ef !== undefined ? (
                       <>
@@ -234,6 +268,7 @@ export const EffectFactors = ({ cas }: EffectFactorsProps) => {
         </div>
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 };
 

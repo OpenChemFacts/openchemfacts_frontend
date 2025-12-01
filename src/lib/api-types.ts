@@ -9,11 +9,12 @@ import { EC10eqData } from "./ec10eq-plot-utils";
 
 /**
  * Structure of an effect factor in the API response
- * Format: {"Source": "source_name", "EF": ef_value}
+ * Format: {"Source": "source_name", "EF": ef_value, "Version": version_value}
  */
 export interface EffectFactorItem {
   Source: string;
   EF: number;
+  Version?: string;
 }
 
 /**
