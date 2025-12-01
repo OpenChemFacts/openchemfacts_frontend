@@ -51,7 +51,7 @@ const Index = () => {
             OpenChemFacts
           </h1>
           <p className="text-lg text-muted-foreground leading-relaxed">
-          Accelerating chemical safety through open data
+          Accelerating hazard and risk assessment through open data
           </p>
         </div>
 

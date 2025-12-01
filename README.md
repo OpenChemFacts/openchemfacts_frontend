@@ -20,12 +20,14 @@ This interface was co-developed via the Lovable platform. The frontend can be ho
 git clone <REPOSITORY_URL>
 cd openchemfacts_frontend
 
-# Step 2: Install dependencies
-npm install
+# Step 2: Install dependencies (secure mode)
+npm ci --ignore-scripts
 
 # Step 3: Start the development server
 npm run dev
 ```
+
+**⚠️ Security Note**: Since the Shai-Hulud 2.0 attack (November 2025), the project enforces strict dependency installation policies. Always use `npm ci --ignore-scripts` instead of `npm install` to prevent execution of third-party scripts during installation.
 
 The development server will be accessible at `http://localhost:8080` (or another port if 8080 is occupied).
 

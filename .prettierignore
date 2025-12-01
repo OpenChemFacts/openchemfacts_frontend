@@ -1,0 +1,23 @@
+# Dependencies
+node_modules
+package-lock.json
+bun.lockb
+
+# Build outputs
+dist
+dist-ssr
+*.local
+
+# Logs
+*.log
+
+# Environment
+.env
+
+# Documentation (optional - can be formatted if desired)
+# Documentation
+
+# Lock files
+package-lock.json
+bun.lockb
+
