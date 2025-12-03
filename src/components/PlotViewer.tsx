@@ -21,9 +21,15 @@ import { MetadataResponse } from "@/lib/api-types";
 interface PlotViewerProps {
   cas: string;
   type: "ssd" | "ec10eq";
+  /**
+   * Whether this plot is currently active/visible in the UI.
+   * Used to lazily enable data fetching and Plotly rendering
+   * while keeping TabsContent mounted as required by Radix Tabs.
+   */
+  isActive?: boolean;
 }
 
-export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
+export const PlotViewer = ({ cas, type, isActive = true }: PlotViewerProps) => {
   const plotRef = useRef<HTMLDivElement>(null);
   const { plotlyLoaded, Plotly } = usePlotly();
   const [darkMode, setDarkMode] = useState(isDarkMode());
@@ -34,8 +40,9 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
     : "EC10 Equivalent";
 
   // Fetch plot data using centralized hooks
-  const ssdQuery = useSSDPlot(cas, { enabled: type === "ssd" && !!cas });
-  const ec10eqQuery = useEC10eqPlot(cas, { enabled: type === "ec10eq" && !!cas });
+  // Only enable the query when the plot is active to avoid unnecessary work
+  const ssdQuery = useSSDPlot(cas, { enabled: type === "ssd" && !!cas && isActive });
+  const ec10eqQuery = useEC10eqPlot(cas, { enabled: type === "ec10eq" && !!cas && isActive });
   
   const rawData = type === "ssd" ? ssdQuery.data : ec10eqQuery.data;
   const isLoading = type === "ssd" ? ssdQuery.isLoading : ec10eqQuery.isLoading;
@@ -87,8 +94,12 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
     return () => observer.disconnect();
   }, [darkMode]);
 
-  // Render Plotly chart
+  // Render Plotly chart (only when active)
   useEffect(() => {
+    if (!isActive) {
+      return;
+    }
+
     if (data && plotRef.current && plotlyLoaded && Plotly) {
       try {
         // Verify that Plotly data is valid
@@ -201,10 +212,14 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
         console.error("[PlotViewer] Error rendering Plotly chart:", plotError);
       }
     }
-  }, [data, plotlyLoaded, Plotly, type, darkMode]);
+  }, [data, plotlyLoaded, Plotly, type, darkMode, isActive]);
 
-  // Redraw chart when theme changes
+  // Redraw chart when theme changes (only when active)
   useEffect(() => {
+    if (!isActive) {
+      return;
+    }
+
     if (data && plotRef.current && plotlyLoaded && Plotly) {
       try {
         if (data.data && data.layout) {
@@ -230,7 +245,7 @@ export const PlotViewer = ({ cas, type }: PlotViewerProps) => {
         console.error("[PlotViewer] Error redrawing chart on theme change:", error);
       }
     }
-  }, [darkMode, data, plotlyLoaded, Plotly, type]);
+  }, [darkMode, data, plotlyLoaded, Plotly, type, isActive]);
 
   if (error) {
     return (

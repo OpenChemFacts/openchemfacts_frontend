@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SearchBar, type ChemicalMetadata } from "@/components/SearchBar";
 import { ChemicalInfo } from "@/components/ChemicalInfo";
 import { EffectFactors } from "@/components/EffectFactors";
@@ -15,11 +15,12 @@ const Index = () => {
   const [selectedChemical, setSelectedChemical] = useState<ChemicalMetadata>({
     cas: DEFAULT_CAS,
   });
+  const [activeTab, setActiveTab] = useState<"ssd" | "ec10">("ssd");
 
   // Get chemical name helper from useCasList
   const { getChemicalName } = useCasList();
 
-  // Load chemical name for default CAS when list is available
+  // Populate default chemical name when CAS list is available
   useEffect(() => {
     if (selectedChemical.cas === DEFAULT_CAS && !selectedChemical.chemical_name) {
       const chemicalName = getChemicalName(DEFAULT_CAS);
@@ -34,11 +35,11 @@ const Index = () => {
 
   // Handler to reset to default CAS when logo is clicked
   const handleLogoClick = () => {
-    const chemicalName = getChemicalName(DEFAULT_CAS);
     setSelectedChemical({
       cas: DEFAULT_CAS,
-      chemical_name: chemicalName || undefined,
+      chemical_name: undefined,
     });
+    setActiveTab("ssd");
   };
 
   return (
@@ -87,18 +88,30 @@ const Index = () => {
               
               <EffectFactors cas={selectedChemical.cas} />
               
-              <Tabs defaultValue="ssd" className="w-full">
+              <Tabs
+                value={activeTab}
+                onValueChange={value => setActiveTab(value as "ssd" | "ec10")}
+                className="w-full"
+              >
                 <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
                   <TabsTrigger value="ssd">SSD Distribution</TabsTrigger>
                   <TabsTrigger value="ec10">EC10 Equivalent</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="ssd" className="mt-6">
-                  <PlotViewer cas={selectedChemical.cas} type="ssd" />
+                  <PlotViewer 
+                    cas={selectedChemical.cas} 
+                    type="ssd" 
+                    isActive={activeTab === "ssd"} 
+                  />
                 </TabsContent>
                 
                 <TabsContent value="ec10" className="mt-6">
-                  <PlotViewer cas={selectedChemical.cas} type="ec10eq" />
+                  <PlotViewer 
+                    cas={selectedChemical.cas} 
+                    type="ec10eq" 
+                    isActive={activeTab === "ec10"} 
+                  />
                 </TabsContent>
               </Tabs>
             </>
