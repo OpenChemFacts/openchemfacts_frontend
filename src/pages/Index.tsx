@@ -5,6 +5,7 @@ import { EffectFactors } from "@/components/EffectFactors";
 import { PlotViewer } from "@/components/PlotViewer";
 import { StatsOverview } from "@/components/StatsOverview";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { BenchmarkComparison } from "@/components/BenchmarkComparison";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCasList } from "@/hooks/useCasList";
@@ -43,10 +44,10 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header onLogoClick={handleLogoClick} />
       
-      <main className="container mx-auto px-4 py-12">
+      <main className="container mx-auto px-4 py-12 flex-1">
         <div className="mb-16 text-center max-w-4xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-semibold mb-4 text-foreground tracking-tight">
             OpenChemFacts
@@ -122,6 +123,7 @@ const Index = () => {
           <BenchmarkComparison />
         </div>
       </main>
+      <Footer />
     </div>
   );
 };

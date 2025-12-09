@@ -3,14 +3,15 @@ import { Mail, Video } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 const Contact = () => {
   const [showEmail, setShowEmail] = useState(false);
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
-      <main className="container mx-auto px-4 py-12">
+      <main className="container mx-auto px-4 py-12 flex-1">
         <div className="mb-8 text-center max-w-4xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-semibold mb-4 text-foreground tracking-tight">
             Contact
@@ -78,6 +79,7 @@ const Contact = () => {
           </CardContent>
         </Card>
       </main>
+      <Footer />
     </div>
   );
 };
