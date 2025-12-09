@@ -31,13 +31,13 @@ export const Footer = () => {
           
           {/* Resources */}
           <a
-            href="https://app.gitbook.com/o/dQydSEllS3T0vyzF2UXh/s/D6f6Q6HL3iGcpTTQVqlL/licence"
+            href="https://openchemfacts.gitbook.io/openchemfacts-docs/licence"
             target="_blank"
             rel="noopener noreferrer"
             className="font-semibold text-sm text-foreground hover:text-primary transition-colors flex items-center gap-2"
           >
             <FileText className="h-4 w-4" />
-            License
+            Licence
             <ExternalLink className="h-3 w-3" />
           </a>
           <a
